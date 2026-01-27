@@ -1,7 +1,7 @@
 {
-    "name" : "",
+    "name" : "托管人生",
     "appid" : "",
-    "description" : "",
+    "description" : "LifeManager - 智能人生管理助手",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
@@ -65,8 +65,8 @@
     "mp-toutiao" : {
         "usingComponents" : true
     },
-    "uniStatistics": {  
-        "enable": false
+    "uniStatistics" : {
+        "enable" : false
     },
     "vueVersion" : "3"
 }
