@@ -7,13 +7,14 @@ from loguru import logger
 
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, decode_token
+from app.core.response import success_response, error_response
 from app.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
 
 router = APIRouter()
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 async def login(
     user_data: UserLogin,
     db: Session = Depends(get_db)
@@ -55,14 +56,17 @@ async def login(
 
     logger.info(f"用户登录成功: {user.username}")
 
-    return Token(
-        user_id=user.id,
-        token=access_token,
-        refresh_token=refresh_token
+    return success_response(
+        data={
+            "user_id": user.id,
+            "token": access_token,
+            "refresh_token": refresh_token
+        },
+        message="登录成功"
     )
 
 
-@router.post("/register", response_model=Token)
+@router.post("/register")
 async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
@@ -100,14 +104,17 @@ async def register(
 
     logger.info(f"新用户注册成功: {new_user.username}")
 
-    return Token(
-        user_id=new_user.id,
-        token=access_token,
-        refresh_token=refresh_token
+    return success_response(
+        data={
+            "user_id": new_user.id,
+            "token": access_token,
+            "refresh_token": refresh_token
+        },
+        message="注册成功"
     )
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh")
 async def refresh_token(
     refresh_token: str,
     db: Session = Depends(get_db)
@@ -140,8 +147,11 @@ async def refresh_token(
 
     logger.info(f"令牌刷新成功: {user.username}")
 
-    return Token(
-        user_id=user.id,
-        token=access_token,
-        refresh_token=new_refresh_token
+    return success_response(
+        data={
+            "user_id": user.id,
+            "token": access_token,
+            "refresh_token": new_refresh_token
+        },
+        message="刷新成功"
     )

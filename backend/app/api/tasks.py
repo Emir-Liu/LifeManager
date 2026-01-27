@@ -17,7 +17,7 @@ from app.services.task_service import task_service
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-@router.get("", response_model=dict)
+@router.get("")
 async def get_tasks(
     goal_id: Optional[int] = None,
     date_filter: Optional[date] = None,
@@ -37,15 +37,15 @@ async def get_tasks(
             status=status_filter
         )
 
-        data = [TaskResponse.model_validate(t) for t in tasks]
+        data = [TaskResponse.model_validate(t).model_dump() for t in tasks]
 
-        return success_response(data=[t.model_dump() for t in data])
+        return success_response(data=data).model_dump()
 
     except Exception as e:
-        return error_response(message=f"获取任务列表失败: {str(e)}")
+        return error_response(message=f"获取任务列表失败: {str(e)}").model_dump()
 
 
-@router.get("/today", response_model=dict)
+@router.get("/today")
 async def get_today_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -62,13 +62,13 @@ async def get_today_tasks(
             "total": result["total"],
             "completed": result["completed"],
             "data": tasks_data
-        })
+        }).model_dump()
 
     except Exception as e:
-        return error_response(message=f"获取今日任务失败: {str(e)}")
+        return error_response(message=f"获取今日任务失败: {str(e)}").model_dump()
 
 
-@router.post("", response_model=dict)
+@router.post("")
 async def create_task(
     task_data: TaskCreate,
     db: Session = Depends(get_db),
@@ -90,17 +90,17 @@ async def create_task(
         )
 
         data = TaskResponse.model_validate(task)
-        return success_response(message="创建成功", data=data.model_dump())
+        return success_response(message="创建成功", data=data.model_dump()).model_dump()
 
     except ValueError as e:
         if ERROR_MESSAGES[ErrorCode.GOAL_NOT_BELONG_TO_USER] in str(e):
-            return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e))
-        return error_response(message=str(e))
+            return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e)).model_dump()
+        return error_response(message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"创建任务失败: {str(e)}")
+        return error_response(message=f"创建任务失败: {str(e)}").model_dump()
 
 
-@router.put("/{task_id}/complete", response_model=dict)
+@router.put("/{task_id}/complete")
 async def complete_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -117,19 +117,19 @@ async def complete_task(
             "completed": task.completed
         }
 
-        return success_response(message="任务已完成", data=data)
+        return success_response(message="任务已完成", data=data).model_dump()
 
     except ValueError as e:
         if ERROR_MESSAGES[ErrorCode.TASK_NOT_FOUND] in str(e):
-            return error_response(code=ErrorCode.TASK_NOT_FOUND, message=str(e))
+            return error_response(code=ErrorCode.TASK_NOT_FOUND, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.TASK_NOT_BELONG_TO_USER] in str(e):
-            return error_response(code=ErrorCode.TASK_NOT_BELONG_TO_USER, message=str(e))
-        return error_response(message=str(e))
+            return error_response(code=ErrorCode.TASK_NOT_BELONG_TO_USER, message=str(e)).model_dump()
+        return error_response(message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"完成任务失败: {str(e)}")
+        return error_response(message=f"完成任务失败: {str(e)}").model_dump()
 
 
-@router.put("/{task_id}/uncomplete", response_model=dict)
+@router.put("/{task_id}/uncomplete")
 async def uncomplete_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -146,19 +146,19 @@ async def uncomplete_task(
             "completed": task.completed
         }
 
-        return success_response(message="已取消完成状态", data=data)
+        return success_response(message="已取消完成状态", data=data).model_dump()
 
     except ValueError as e:
         if ERROR_MESSAGES[ErrorCode.TASK_NOT_FOUND] in str(e):
-            return error_response(code=ErrorCode.TASK_NOT_FOUND, message=str(e))
+            return error_response(code=ErrorCode.TASK_NOT_FOUND, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.TASK_NOT_BELONG_TO_USER] in str(e):
-            return error_response(code=ErrorCode.TASK_NOT_BELONG_TO_USER, message=str(e))
-        return error_response(message=str(e))
+            return error_response(code=ErrorCode.TASK_NOT_BELONG_TO_USER, message=str(e)).model_dump()
+        return error_response(message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"取消完成任务失败: {str(e)}")
+        return error_response(message=f"取消完成任务失败: {str(e)}").model_dump()
 
 
-@router.delete("/{task_id}", response_model=dict)
+@router.delete("/{task_id}")
 async def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -169,13 +169,13 @@ async def delete_task(
     """
     try:
         task_service.delete_task(db, task_id, current_user.id)
-        return success_response(message="删除成功")
+        return success_response(message="删除成功").model_dump()
 
     except ValueError as e:
         if ERROR_MESSAGES[ErrorCode.TASK_NOT_FOUND] in str(e):
-            return error_response(code=ErrorCode.TASK_NOT_FOUND, message=str(e))
+            return error_response(code=ErrorCode.TASK_NOT_FOUND, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.TASK_NOT_BELONG_TO_USER] in str(e):
-            return error_response(code=ErrorCode.TASK_NOT_BELONG_TO_USER, message=str(e))
-        return error_response(message=str(e))
+            return error_response(code=ErrorCode.TASK_NOT_BELONG_TO_USER, message=str(e)).model_dump()
+        return error_response(message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"删除任务失败: {str(e)}")
+        return error_response(message=f"删除任务失败: {str(e)}").model_dump()

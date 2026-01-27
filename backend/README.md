@@ -18,6 +18,65 @@ cp .env.example .env
 # 编辑 .env 文件，配置必要的参数
 ```
 
+### 数据库配置说明
+
+本项目支持多种数据库: SQLite、MySQL、PostgreSQL。
+
+#### 使用 SQLite(开发环境)
+```bash
+# .env 文件中配置
+DATABASE_URL=sqlite:///./lifemanager.db
+```
+无需额外配置,开箱即用。
+
+#### 使用 MySQL(生产环境推荐)
+数据库创建脚本
+```bash
+docker run -d \
+  --name lifemanager-mysql \
+  --restart unless-stopped \
+  -e MYSQL_ROOT_PASSWORD=root_password \
+  -e MYSQL_DATABASE=lifemanager \
+  -e MYSQL_USER=lifemanager \
+  -e MYSQL_PASSWORD=lifemanager_password \
+  -p 3306:3306 \
+  -v mysql_data:/var/lib/mysql \
+  mysql:8.0 \
+  --character-set-server=utf8mb4 \
+  --collation-server=utf8mb4_unicode_ci
+```
+
+1. 安装 MySQL 服务:
+```bash
+# Windows: 下载并安装 MySQL Installer
+# macOS: brew install mysql
+# Linux: sudo apt-get install mysql-server
+```
+
+2. 创建数据库:
+```sql
+CREATE DATABASE lifemanager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+3. 配置 .env 文件:
+```bash
+DATABASE_URL=mysql+pymysql://用户名:密码@localhost:3306/lifemanager?charset=utf8mb4
+```
+
+4. 首次启动时,应用会自动创建表结构。
+
+#### 使用 PostgreSQL
+
+1. 创建数据库:
+```sql
+CREATE DATABASE lifemanager;
+```
+
+2. 配置 .env 文件:
+```bash
+DATABASE_URL=postgresql://用户名:密码@localhost:5432/lifemanager
+```
+
 ### 3. 启动服务
 
 ```bash
@@ -127,17 +186,24 @@ backend/
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `DEBUG` | 调试模式 | `True` |
-| `DATABASE_URL` | 数据库连接 | `sqlite:///./lifemanager.db` |
+| `DATABASE_URL` | 数据库连接 (支持 MySQL/PostgreSQL/SQLite) | `sqlite:///./lifemanager.db` |
 | `JWT_SECRET_KEY` | JWT 密钥 | `your-secret-key-here` |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Token 过期时间（分钟） | `10080` |
-| `OPENAI_API_BASE` | OpenAI API 地址 | `https://api.deepseek.com` |
+| `OPENAI_API_BASE` | OpenAI API 地址 (通用接口) | `https://api.openai.com/v1` |
 | `OPENAI_API_KEY` | OpenAI API 密钥 | - |
-| `AI_MODEL` | AI 模型 | `deepseek-chat` |
+| `AI_MODEL` | AI 模型 | `gpt-3.5-turbo` |
+
+### 数据库 URL 格式说明
+
+- **MySQL**: `mysql+pymysql://用户名:密码@主机:端口/数据库?charset=utf8mb4`
+- **PostgreSQL**: `postgresql://用户名:密码@主机:端口/数据库`
+- **SQLite**: `sqlite:///./数据库文件路径.db`
 
 ## 技术栈
 
 - **框架**: FastAPI
-- **数据库**: SQLAlchemy ORM + SQLite
+- **数据库**: SQLAlchemy ORM + MySQL / PostgreSQL / SQLite
+- **MySQL 驱动**: PyMySQL
 - **认证**: JWT (python-jose)
 - **密码加密**: bcrypt
 - **测试**: pytest

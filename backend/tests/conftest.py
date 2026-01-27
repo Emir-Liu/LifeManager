@@ -5,48 +5,57 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 from typing import Generator
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-# 设置测试环境变量,使用内存数据库
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# 设置测试环境变量,使用文件数据库(避免多连接问题)
+TEST_DB_PATH = "./test.db"
+os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_PATH}"
+os.environ["TESTING"] = "true"
 
-# 必须在导入 app 之后导入,这样会使用内存数据库
-from main import app
-from app.core.database import get_db, Base, engine, SessionLocal
+# 导入模型和工具
 from app.models import User, Goal, Plan, Task
 from app.core.security import get_password_hash, create_access_token
+from app.core.database import Base, get_db
 
-# 使用 main.py 的 engine
-TestingSessionLocal = SessionLocal
+# 创建测试专用引擎
+test_engine = create_engine(
+    f"sqlite:///{TEST_DB_PATH}",
+    connect_args={"check_same_thread": False},
+    pool_pre_ping=True,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+
+def reset_database():
+    """重置数据库：删除所有表并重新创建"""
+    Base.metadata.drop_all(bind=test_engine)
+    Base.metadata.create_all(bind=test_engine)
 
 
 @pytest.fixture(scope="function")
 def db() -> Generator:
     """
     创建测试数据库会话
-
-    每个测试函数都会获得一个全新的数据库
+    每个测试函数开始前重置数据库
     """
-    # 创建所有表
-    Base.metadata.create_all(bind=engine)
-
-    # 创建会话
+    # 重置数据库
+    reset_database()
+    
     session = TestingSessionLocal()
-
     try:
         yield session
     finally:
         session.close()
-        # 删除所有表
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
 def client(db) -> Generator:
     """
     创建测试客户端
-
     使用测试数据库覆盖默认的数据库依赖
     """
+    from main import app
 
     def override_get_db():
         try:
@@ -62,13 +71,21 @@ def client(db) -> Generator:
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_db():
+    """测试会话结束时清理测试数据库文件"""
+    yield
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
+
+
 @pytest.fixture
 def test_user(db) -> User:
     """
     创建测试用户
     """
-    import bcrypt
-    password_hash = bcrypt.hashpw('pass123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # 使用统一的密码加密方法
+    password_hash = get_password_hash('pass123')
 
     user = User(
         username="testuser",

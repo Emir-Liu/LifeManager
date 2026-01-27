@@ -1,11 +1,11 @@
 <template>
 	<view class="content">
-		<view class="welcome-section">
+	<view class="welcome-section">
 			<text class="title">托管人生</text>
-			<text class="subtitle">LifeManager</text>
+			<text class="subtitle">AI 智能人生管理助手</text>
 		</view>
-		<view class="description">
-			<text class="desc-text">让AI帮你规划人生</text>
+	<view class="description">
+			<text class="desc-text">让 AI 帮你规划人生，实现目标</text>
 		</view>
 		<view class="btn-group">
 			<button class="primary-btn" @click="handleStart">开始使用</button>
@@ -15,20 +15,29 @@
 </template>
 
 <script>
+	import { mapGetters } from 'vuex'
+
 	export default {
 		data() {
 			return {
 				title: '托管人生'
 			}
 		},
+		computed: {
+			...mapGetters('user', ['isLoggedIn'])
+		},
 		onLoad() {
-
+			// 检查登录状态
+			if (this.isLoggedIn) {
+				uni.switchTab({
+					url: '/pages/goals/goals'
+				})
+			}
 		},
 		methods: {
 			handleStart() {
-				uni.showToast({
-					title: '即将开放',
-					icon: 'none'
+				uni.navigateTo({
+					url: '/pages/register/register'
 				});
 			},
 			handleLogin() {

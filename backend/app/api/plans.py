@@ -16,7 +16,7 @@ from app.services.plan_service import plan_service
 router = APIRouter(prefix="/plans", tags=["plans"])
 
 
-@router.post("/generate", response_model=dict)
+@router.post("/generate")
 async def generate_plan(
     request: PlanGenerateRequest,
     db: Session = Depends(get_db),
@@ -43,18 +43,18 @@ async def generate_plan(
             "estimated_total_hours": plan.estimated_total_hours
         }
 
-        return success_response(message="规划生成成功", data=data)
+        return success_response(message="规划生成成功", data=data).model_dump()
 
     except ValueError as e:
         error_code = ErrorCode.GOAL_NOT_FOUND
         if ERROR_MESSAGES[ErrorCode.GOAL_NOT_BELONG_TO_USER] in str(e):
             error_code = ErrorCode.GOAL_NOT_BELONG_TO_USER
-        return error_response(code=error_code, message=str(e))
+        return error_response(code=error_code, message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"生成规划失败: {str(e)}")
+        return error_response(message=f"生成规划失败: {str(e)}").model_dump()
 
 
-@router.get("/{plan_id}", response_model=dict)
+@router.get("/{plan_id}")
 async def get_plan(
     plan_id: int,
     db: Session = Depends(get_db),
@@ -78,18 +78,18 @@ async def get_plan(
             "created_at": plan.created_at.isoformat() if plan.created_at else None
         }
 
-        return success_response(data=data)
+        return success_response(data=data).model_dump()
 
     except ValueError as e:
         error_code = ErrorCode.PLAN_NOT_FOUND
         if ERROR_MESSAGES[ErrorCode.GOAL_NOT_BELONG_TO_USER] in str(e):
             error_code = ErrorCode.GOAL_NOT_BELONG_TO_USER
-        return error_response(code=error_code, message=str(e))
+        return error_response(code=error_code, message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"获取规划详情失败: {str(e)}")
+        return error_response(message=f"获取规划详情失败: {str(e)}").model_dump()
 
 
-@router.post("/{plan_id}/confirm", response_model=dict)
+@router.post("/{plan_id}/confirm")
 async def confirm_plan(
     plan_id: int,
     content: Optional[dict] = None,
@@ -105,21 +105,21 @@ async def confirm_plan(
         return success_response(
             message=f"规划确认成功，已创建 {result['tasks_created']} 个任务",
             data=result
-        )
+        ).model_dump()
 
     except ValueError as e:
         if ERROR_MESSAGES[ErrorCode.PLAN_NOT_FOUND] in str(e):
-            return error_response(code=ErrorCode.PLAN_NOT_FOUND, message=str(e))
+            return error_response(code=ErrorCode.PLAN_NOT_FOUND, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.GOAL_NOT_BELONG_TO_USER] in str(e):
-            return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e))
+            return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY] in str(e):
-            return error_response(code=ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY, message=str(e))
-        return error_response(message=str(e))
+            return error_response(code=ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY, message=str(e)).model_dump()
+        return error_response(message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"确认规划失败: {str(e)}")
+        return error_response(message=f"确认规划失败: {str(e)}").model_dump()
 
 
-@router.put("/{plan_id}", response_model=dict)
+@router.put("/{plan_id}")
 async def update_plan(
     plan_id: int,
     content: dict,
@@ -140,15 +140,15 @@ async def update_plan(
             "estimated_total_hours": plan.estimated_total_hours
         }
 
-        return success_response(message="修改成功", data=data)
+        return success_response(message="修改成功", data=data).model_dump()
 
     except ValueError as e:
         if ERROR_MESSAGES[ErrorCode.PLAN_NOT_FOUND] in str(e):
-            return error_response(code=ErrorCode.PLAN_NOT_FOUND, message=str(e))
+            return error_response(code=ErrorCode.PLAN_NOT_FOUND, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.GOAL_NOT_BELONG_TO_USER] in str(e):
-            return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e))
+            return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY] in str(e):
-            return error_response(code=ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY, message=str(e))
-        return error_response(message=str(e))
+            return error_response(code=ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY, message=str(e)).model_dump()
+        return error_response(message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"修改规划失败: {str(e)}")
+        return error_response(message=f"修改规划失败: {str(e)}").model_dump()

@@ -1,12 +1,13 @@
 """
-AI 规划生成服务
+AI 规划生成服务 - 使用 LLMOperator
 """
-import os
 import json
 from typing import Dict, Any
-from openai import OpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
 from app.core.exceptions import ErrorCode, ERROR_MESSAGES
 from app.core.logger import logger
+from app.core.config import settings
+from app.utils.llm_operator import LLMOperator
 
 
 SYSTEM_PROMPT = """
@@ -86,21 +87,25 @@ class AIService:
 
     def __init__(self):
         """初始化 AI 客户端"""
-        self.api_key = os.getenv("OPENAI_API_KEY", "")
-        self.api_base = os.getenv("OPENAI_API_BASE", "https://api.deepseek.com")
-        self.model = os.getenv("AI_MODEL", "deepseek-chat")
-        self.max_tokens = int(os.getenv("AI_MAX_TOKENS", 4000))
-        self.temperature = float(os.getenv("AI_TEMPERATURE", 0.7))
-
         # 只有配置了 API Key 才初始化客户端
-        if self.api_key:
-            self.client = OpenAI(
-                api_key=self.api_key,
-                base_url=self.api_base
-            )
+        if settings.LLM_MODEL_API_KEY:
+            try:
+                self.llm_operator = LLMOperator(
+                    model_name=settings.LLM_MODEL_NAME,
+                    api_key=settings.LLM_MODEL_API_KEY,
+                    base_url=settings.LLM_MODEL_BASE_URL,
+                    api_type=settings.LLM_MODEL_API_TYPE
+                )
+                self.llm = self.llm_operator.get_llm()
+                logger.info(f"AI 服务初始化成功，模型: {settings.LLM_MODEL_NAME}")
+            except Exception as e:
+                logger.error(f"AI 服务初始化失败: {e}")
+                self.llm = None
+                self.llm_operator = None
         else:
-            self.client = None
-            logger.warning("未配置 OPENAI_API_KEY，AI 服务将使用降级方案")
+            self.llm = None
+            self.llm_operator = None
+            logger.warning("未配置 LLM_MODEL_API_KEY，AI 服务将使用降级方案")
 
     def generate_plan(
         self,
@@ -126,7 +131,7 @@ class AIService:
             Exception: AI 调用失败
         """
         # 如果未配置 API Key，使用降级方案
-        if not self.client:
+        if not self.llm:
             logger.info("使用降级方案生成规划")
             return self._get_fallback_plan(goal_title)
 
@@ -137,19 +142,15 @@ class AIService:
             # 调用 AI API
             logger.info(f"调用 AI 生成规划，目标：{goal_title}")
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                response_format={"type": "json_object"}
-            )
+            # 构建消息
+            messages = [
+                SystemMessage(content=SYSTEM_PROMPT),
+                HumanMessage(content=prompt)
+            ]
 
-            # 提取响应内容
-            content = response.choices[0].message.content
+            # 调用 LangChain LLM
+            response = self.llm.invoke(messages)
+            content = response.content
 
             # 解析 JSON
             plan_data = json.loads(content)
