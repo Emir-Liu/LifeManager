@@ -196,6 +196,34 @@ class GoalService:
 
         return GoalService.update_goal(db, goal_id, user_id, status=status)
 
+    @staticmethod
+    def get_goal_statistics(db: Session, user_id: int) -> dict:
+        """
+        获取目标统计信息
+
+        Args:
+            db: 数据库会话
+            user_id: 用户 ID
+
+        Returns:
+            统计数据字典
+        """
+        total = db.query(Goal).filter(Goal.user_id == user_id).count()
+        in_progress = db.query(Goal).filter(
+            Goal.user_id == user_id,
+            Goal.status.in_(["planning", "confirmed"])
+        ).count()
+        completed = db.query(Goal).filter(
+            Goal.user_id == user_id,
+            Goal.status == "completed"
+        ).count()
+
+        return {
+            "total": total,
+            "inProgress": in_progress,
+            "completed": completed
+        }
+
 
 # 全局实例
 goal_service = GoalService()

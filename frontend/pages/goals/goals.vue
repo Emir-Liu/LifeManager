@@ -103,6 +103,12 @@ export default {
     this.loadStats()
   },
 
+  onShow() {
+    // 从详情页返回时刷新数据
+    this.loadGoals()
+    this.loadStats()
+  },
+
   methods: {
     async loadGoals() {
       try {

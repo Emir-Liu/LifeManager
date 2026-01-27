@@ -1,6 +1,7 @@
 /**
  * 用户状态管理
  */
+import { post } from '@/utils/request'
 
 const state = {
   token: uni.getStorageSync('lifemanager_token') || '',
@@ -28,7 +29,6 @@ const actions = {
   // 登录
   async login({ commit }, credentials) {
     try {
-      const { post } = require('@/utils/request')
       const data = await post('/auth/login', credentials)
       commit('SET_TOKEN', data.token)
       commit('SET_USER', {
@@ -44,7 +44,6 @@ const actions = {
   // 注册
   async register({ dispatch }, userData) {
     try {
-      const { post } = require('@/utils/request')
       await post('/auth/register', userData)
       // 注册成功后自动登录
       return dispatch('login', {

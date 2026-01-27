@@ -70,7 +70,7 @@
 
     <!-- 底部确认按钮 -->
     <view class="footer" v-if="plan && !loading">
-      <button class="confirm-btn" @click="confirmPlan">
+      <button class="confirm-btn" @click="handleConfirmPlan">
         确认规划并创建任务
       </button>
     </view>
@@ -148,7 +148,7 @@ export default {
       }
     },
 
-    async confirmPlan() {
+    async handleConfirmPlan() {
       if (!this.plan) return
 
       try {

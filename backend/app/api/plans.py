@@ -1,6 +1,7 @@
 """
 规划 API
 """
+import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -33,10 +34,13 @@ async def generate_plan(
             request.available_hours_per_day
         )
 
+        # 解析 content JSON 字符串为对象
+        content_obj = json.loads(plan.content) if plan.content else {"stages": []}
+        
         data = {
-            "plan_id": plan.id,
+            "id": plan.id,
             "goal_id": plan.goal_id,
-            "content": plan.content,
+            "content": content_obj,
             "status": plan.status,
             "total_stages": plan.total_stages,
             "total_tasks": plan.total_tasks,
@@ -66,11 +70,14 @@ async def get_plan(
     try:
         plan = plan_service.get_plan_by_id(db, plan_id, current_user.id)
 
+        # 解析 content JSON 字符串为对象
+        content_obj = json.loads(plan.content) if plan.content else {"stages": []}
+
         data = {
             "id": plan.id,
             "goal_id": plan.goal_id,
             "goal_title": plan.goal.title,
-            "content": plan.content,
+            "content": content_obj,
             "status": plan.status,
             "total_stages": plan.total_stages,
             "total_tasks": plan.total_tasks,
@@ -132,9 +139,12 @@ async def update_plan(
     try:
         plan = plan_service.update_plan(db, plan_id, current_user.id, content)
 
+        # 解析 content JSON 字符串为对象
+        content_obj = json.loads(plan.content) if plan.content else {"stages": []}
+
         data = {
             "id": plan.id,
-            "content": plan.content,
+            "content": content_obj,
             "total_stages": plan.total_stages,
             "total_tasks": plan.total_tasks,
             "estimated_total_hours": plan.estimated_total_hours

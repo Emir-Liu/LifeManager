@@ -1,6 +1,7 @@
 /**
  * 规划状态管理
  */
+import { get, post, put } from '@/utils/request'
 
 const state = {
   current: null,
@@ -25,7 +26,6 @@ const actions = {
   async generatePlan({ commit }, { goalId, availableHoursPerDay = 2 }) {
     commit('SET_LOADING', true)
     try {
-      const { post } = require('@/utils/request')
       const plan = await post('/plans/generate', {
         goal_id: goalId,
         available_hours_per_day: availableHoursPerDay
@@ -43,7 +43,6 @@ const actions = {
   async fetchPlanDetail({ commit }, planId) {
     commit('SET_LOADING', true)
     try {
-      const { get } = require('@/utils/request')
       const plan = await get(`/plans/${planId}`)
       commit('SET_DETAIL', plan)
       return plan
@@ -57,7 +56,6 @@ const actions = {
   // 确认规划
   async confirmPlan({ commit }, { planId, content = null }) {
     try {
-      const { post } = require('@/utils/request')
       const result = await post(`/plans/${planId}/confirm`, content ? { content } : {})
       return result
     } catch (error) {
@@ -68,7 +66,6 @@ const actions = {
   // 修改规划
   async updatePlan({ commit }, { planId, content }) {
     try {
-      const { put } = require('@/utils/request')
       const plan = await put(`/plans/${planId}`, { content })
       commit('SET_CURRENT', plan)
       return plan

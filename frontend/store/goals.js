@@ -1,6 +1,7 @@
 /**
  * 目标状态管理
  */
+import { get, post, del } from '@/utils/request'
 
 const state = {
   list: [],
@@ -37,7 +38,6 @@ const actions = {
   async fetchGoals({ commit }) {
     commit('SET_LOADING', true)
     try {
-      const { get } = require('@/utils/request')
       const list = await get('/goals')
       commit('SET_LIST', list)
       return list
@@ -51,7 +51,6 @@ const actions = {
   // 创建目标
   async createGoal({ commit, dispatch }, goalData) {
     try {
-      const { post } = require('@/utils/request')
       const goal = await post('/goals', goalData)
       commit('ADD_GOAL', goal)
       return goal
@@ -63,7 +62,6 @@ const actions = {
   // 获取目标详情
   async fetchGoalDetail({ commit }, goalId) {
     try {
-      const { get } = require('@/utils/request')
       const goal = await get(`/goals/${goalId}`)
       commit('SET_CURRENT', goal)
       return goal
@@ -75,7 +73,6 @@ const actions = {
   // 删除目标
   async deleteGoal({ commit }, goalId) {
     try {
-      const { del } = require('@/utils/request')
       await del(`/goals/${goalId}`)
       commit('DELETE_GOAL', goalId)
     } catch (error) {

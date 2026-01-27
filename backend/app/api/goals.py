@@ -78,6 +78,14 @@ async def get_goal(
         # 移除 SQLAlchemy 内部属性
         detail.pop("_sa_instance_state", None)
 
+        # 获取关联的规划ID（最新的一个）
+        from app.models.plan import Plan
+        plan = db.query(Plan).filter(
+            Plan.goal_id == goal_id
+        ).order_by(Plan.created_at.desc()).first()
+
+        detail["planId"] = plan.id if plan else None
+
         return success_response(data=detail).model_dump()
 
     except ValueError as e:
@@ -88,6 +96,21 @@ async def get_goal(
         return error_response(message=str(e)).model_dump()
     except Exception as e:
         return error_response(message=f"获取目标详情失败: {str(e)}").model_dump()
+
+
+@router.get("/statistics")
+async def get_statistics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    获取目标统计信息
+    """
+    try:
+        stats = goal_service.get_goal_statistics(db, current_user.id)
+        return success_response(data=stats).model_dump()
+    except Exception as e:
+        return error_response(message=f"获取统计信息失败: {str(e)}").model_dump()
 
 
 @router.delete("/{goal_id}")

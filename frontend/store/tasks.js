@@ -1,6 +1,7 @@
 /**
  * 任务状态管理
  */
+import { get, put } from '@/utils/request'
 
 const state = {
   list: [],
@@ -38,7 +39,6 @@ const actions = {
   async fetchTodayTasks({ commit }) {
     commit('SET_LOADING', true)
     try {
-      const { get } = require('@/utils/request')
       const result = await get('/tasks/today')
       commit('SET_TODAY', result.data || result)
       return result
@@ -53,7 +53,6 @@ const actions = {
   async fetchTasks({ commit }, params = {}) {
     commit('SET_LOADING', true)
     try {
-      const { get } = require('@/utils/request')
       const list = await get('/tasks', params)
       commit('SET_LIST', list.data || list)
       return list
@@ -67,7 +66,6 @@ const actions = {
   // 获取任务详情
   async fetchTaskDetail({ commit }, taskId) {
     try {
-      const { get } = require('@/utils/request')
       const task = await get(`/tasks/${taskId}`)
       commit('SET_CURRENT', task)
       return task
@@ -79,7 +77,6 @@ const actions = {
   // 完成任务
   async completeTask({ commit, dispatch }, taskId) {
     try {
-      const { put } = require('@/utils/request')
       const task = await put(`/tasks/${taskId}/complete`)
       commit('UPDATE_TASK', task)
       return task
@@ -91,7 +88,6 @@ const actions = {
   // 取消完成任务
   async uncompleteTask({ commit }, taskId) {
     try {
-      const { put } = require('@/utils/request')
       const task = await put(`/tasks/${taskId}/uncomplete`)
       commit('UPDATE_TASK', task)
       return task

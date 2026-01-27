@@ -9,7 +9,7 @@ const BASE_URL = 'http://localhost:8000/api'
  */
 function request(options) {
   // 获取本地存储的 token
-  const token = uni.getStorageSync('token')
+  const token = uni.getStorageSync('lifemanager_token')
 
   // 拼接完整 URL
   let url = options.url
@@ -28,7 +28,7 @@ function request(options) {
         ...options.header
       },
       success: (res) => {
-        if (res.statusCode === 200) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
           const data = res.data
           if (data.code === 0) {
             resolve(data.data)
@@ -43,8 +43,17 @@ function request(options) {
           } else {
             reject(new Error(data.message || '请求失败'))
           }
+        } else if (res.statusCode === 400 || res.statusCode === 422) {
+          // 处理校验错误
+          const errorMsg = res.data?.detail || res.data?.message || '请求参数错误'
+          uni.showToast({
+            title: errorMsg,
+            icon: 'none'
+          })
+          reject(new Error(errorMsg))
         } else {
-          reject(new Error(`请求失败: ${res.statusCode}`))
+          const errorMsg = res.data?.detail || res.data?.message || `请求失败: ${res.statusCode}`
+          reject(new Error(errorMsg))
         }
       },
       fail: (err) => {

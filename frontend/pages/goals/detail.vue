@@ -42,6 +42,28 @@
       </view>
     </view>
 
+    <!-- AI 规划卡片 -->
+    <view class="plan-card" v-if="!goal.planId">
+      <view class="plan-header">
+        <text class="plan-icon">🤖</text>
+        <view class="plan-info">
+          <text class="plan-title">AI 智能规划</text>
+          <text class="plan-desc">让 AI 帮你拆解目标，生成可执行的任务计划</text>
+        </view>
+      </view>
+      <button class="plan-btn" @tap="handleGeneratePlan">生成规划</button>
+    </view>
+    <view class="plan-card created" v-else @tap="handleViewPlan">
+      <view class="plan-header">
+        <text class="plan-icon">✅</text>
+        <view class="plan-info">
+          <text class="plan-title">已生成 AI 规划</text>
+          <text class="plan-desc">点击查看详细执行步骤</text>
+        </view>
+      </view>
+      <text class="plan-arrow">→</text>
+    </view>
+
     <!-- 操作按钮 -->
     <view class="action-bar">
       <button v-if="goal.status !== 'completed'" class="action-btn primary" @tap="handleComplete">
@@ -55,6 +77,7 @@
 
 <script>
 import goalApi from '@/api/goal.js'
+import planApi from '@/api/plan.js'
 
 export default {
   data() {
@@ -111,6 +134,29 @@ export default {
       uni.showToast({
         title: '编辑功能开发中',
         icon: 'none'
+      })
+    },
+
+    async handleGeneratePlan() {
+      uni.showLoading({ title: 'AI 思考中...' })
+      try {
+        const plan = await planApi.generatePlan(this.goalId)
+        uni.hideLoading()
+        uni.navigateTo({
+          url: `/pages/plans/detail?planId=${plan.id}`
+        })
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: error.message || '生成失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    handleViewPlan() {
+      uni.navigateTo({
+        url: `/pages/plans/detail?planId=${this.goal.planId}`
       })
     },
 
@@ -322,5 +368,75 @@ export default {
 .action-btn.danger {
   background-color: #FF3B30;
   color: #ffffff;
+}
+
+.plan-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 20rpx;
+}
+
+.plan-card.created {
+  background: #ffffff;
+  border: 2rpx solid #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.plan-header {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.plan-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+}
+
+.plan-info {
+  flex: 1;
+}
+
+.plan-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #ffffff;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.plan-card.created .plan-title {
+  color: #333;
+}
+
+.plan-desc {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+}
+
+.plan-card.created .plan-desc {
+  color: #666;
+}
+
+.plan-btn {
+  margin-top: 24rpx;
+  width: 100%;
+  height: 80rpx;
+  background: #ffffff;
+  color: #667eea;
+  border: none;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.plan-arrow {
+  font-size: 40rpx;
+  color: #667eea;
+  font-weight: bold;
 }
 </style>

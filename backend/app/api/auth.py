@@ -59,6 +59,7 @@ async def login(
     return success_response(
         data={
             "user_id": user.id,
+            "username": user.username,
             "token": access_token,
             "refresh_token": refresh_token
         },
@@ -107,6 +108,7 @@ async def register(
     return success_response(
         data={
             "user_id": new_user.id,
+            "username": new_user.username,
             "token": access_token,
             "refresh_token": refresh_token
         },
