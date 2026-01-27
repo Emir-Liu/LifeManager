@@ -13,31 +13,23 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
 
-    # 安全密钥
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    # JWT 配置
+    JWT_SECRET_KEY: str = "your-secret-key-here-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 天
 
     # 数据库配置
     DATABASE_URL: str = "sqlite:///./lifemanager.db"
 
-    # Redis 配置
-    REDIS_URL: str = "redis://localhost:6379/0"
-
-    # JWT 配置
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-
-    # OpenAI 配置
+    # AI 配置 (DeepSeek)
+    OPENAI_API_BASE: str = "https://api.deepseek.com"
     OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4"
-
-    # FCM 配置
-    FCM_SERVER_KEY: str = ""
-
-    # 短信配置
-    SMS_API_KEY: str = ""
+    AI_MODEL: str = "deepseek-chat"
+    AI_MAX_TOKENS: int = 4000
+    AI_TEMPERATURE: float = 0.7
 
     # 跨域配置
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["*"]
 
     # 日志配置
     LOG_LEVEL: str = "INFO"
