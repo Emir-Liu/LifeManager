@@ -1,12 +1,19 @@
 """
 应用配置管理
 """
+import os
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import List
 
 
 class Settings(BaseSettings):
     """应用配置类"""
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore"
+    )
 
     # 应用基本信息
     APP_NAME: str = "LifeManager"
@@ -17,9 +24,15 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "your-secret-key-here-change-in-production"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 天
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 天
 
     # 数据库配置
     DATABASE_URL: str = "sqlite:///./lifemanager.db"
+
+    @property
+    def effective_database_url(self) -> str:
+        """有效的数据库 URL (优先使用环境变量)"""
+        return os.getenv("DATABASE_URL", self.DATABASE_URL)
 
     # AI 配置 (DeepSeek)
     OPENAI_API_BASE: str = "https://api.deepseek.com"
@@ -33,10 +46,6 @@ class Settings(BaseSettings):
 
     # 日志配置
     LOG_LEVEL: str = "INFO"
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 # 创建全局配置实例

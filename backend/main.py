@@ -1,6 +1,7 @@
 """
 LifeManager 主应用入口
 """
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -47,14 +48,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 注册路由
-app.include_router(auth.router, prefix="/v1/auth", tags=["认证"])
-app.include_router(users.router, prefix="/v1/users", tags=["用户"])
-app.include_router(goals.router, prefix="/v1/goals", tags=["目标"])
-app.include_router(plans.router, prefix="/v1/plans", tags=["规划"])
-app.include_router(tasks.router, prefix="/v1/tasks", tags=["任务"])
-app.include_router(reminders.router, prefix="/v1/reminders", tags=["提醒"])
-app.include_router(statistics.router, prefix="/v1/statistics", tags=["统计"])
+# 注册路由 (注意: auth 没有前缀,其他 router 有前缀)
+app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
+app.include_router(users.router, prefix="/api", tags=["用户"])
+app.include_router(goals.router, prefix="/api", tags=["目标"])
+app.include_router(plans.router, prefix="/api", tags=["规划"])
+app.include_router(tasks.router, prefix="/api", tags=["任务"])
+app.include_router(reminders.router, prefix="/api", tags=["提醒"])
+app.include_router(statistics.router, prefix="/api", tags=["统计"])
 
 
 @app.get("/")
