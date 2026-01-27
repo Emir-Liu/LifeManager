@@ -40,7 +40,7 @@
             </view>
           </view>
           <view class="task-right">
-            <button class="action-btn" v-if="!task.completed" @click.stop="completeTask(task.id)">
+            <button class="action-btn" v-if="!task.completed" @click.stop="handleCompleteTask(task.id)">
               开始
             </button>
           </view>
@@ -84,16 +84,31 @@ export default {
     groupedTasks() {
       const groups = {}
       this.taskList.forEach(task => {
-        const date = task.due_date ? task.due_date.split('T')[0] : '未安排'
-        if (!groups[date]) {
-          groups[date] = { date, tasks: [] }
+        // 处理日期格式：可能是 ISO 格式(2026-01-28T00:00:00)或纯日期(2026-01-28)
+        let dateStr = task.due_date
+        if (!dateStr) {
+          dateStr = '未安排'
+        } else if (dateStr.includes('T')) {
+          dateStr = dateStr.split('T')[0]
         }
-        groups[date].tasks.push(task)
+        
+        if (!groups[dateStr]) {
+          groups[dateStr] = { date: dateStr, tasks: [] }
+        }
+        groups[dateStr].tasks.push(task)
       })
-      return Object.values(groups).sort((a, b) => new Date(a.date) - new Date(b.date))
+      return Object.values(groups).sort((a, b) => {
+        if (a.date === '未安排') return 1
+        if (b.date === '未安排') return -1
+        return new Date(a.date) - new Date(b.date)
+      })
     }
   },
   onLoad() {
+    this.loadTasks()
+  },
+  onShow() {
+    // 从其他页面返回时刷新
     this.loadTasks()
   },
   onPullDownRefresh() {
@@ -108,13 +123,16 @@ export default {
       this.loading = true
       try {
         if (this.filter === 'today') {
-          await this.fetchTodayTasks()
+          const result = await this.fetchTodayTasks()
+          console.log('今日任务加载完成:', result)
         } else {
           await this.fetchTasks()
         }
       } catch (error) {
+        console.error('加载任务失败:', error)
+        const message = typeof error === 'object' && error?.message ? error.message : '加载失败'
         uni.showToast({
-          title: error.message || '加载失败',
+          title: message,
           icon: 'none'
         })
       } finally {
@@ -128,7 +146,7 @@ export default {
       })
     },
 
-    async completeTask(taskId) {
+    async handleCompleteTask(taskId) {
       try {
         await this.completeTask(taskId)
         uni.showToast({
@@ -136,8 +154,9 @@ export default {
           icon: 'success'
         })
       } catch (error) {
+        const message = error?.message || (typeof error === 'string' ? error : '操作失败')
         uni.showToast({
-          title: error.message || '操作失败',
+          title: message,
           icon: 'none'
         })
       }

@@ -169,18 +169,21 @@ class TaskService:
             任务列表
         """
         # 关联查询目标验证用户
+        from sqlalchemy.orm import joinedload
         query = db.query(Task).join(Goal).filter(Goal.user_id == user_id)
 
         if goal_id:
             query = query.filter(Task.goal_id == goal_id)
 
         if date:
-            query = query.filter(func.date(Task.due_date) == date)
+            query = query.filter(Task.due_date == date)
+            logger.debug(f"筛选日期: {date}")
 
         if status is not None:
             query = query.filter(Task.completed == status)
 
-        tasks = query.order_by(Task.due_date.asc()).all()
+        tasks = query.order_by(Task.task_order.asc()).all()
+        logger.info(f"查询到 {len(tasks)} 个任务")
         return tasks
 
     @staticmethod
@@ -196,10 +199,14 @@ class TaskService:
             包含任务列表和统计信息的字典
         """
         today = datetime.date.today()
+        
+        logger.info(f"获取用户 {user_id} 今天的任务，日期: {today}")
 
         tasks = TaskService.get_user_tasks(db, user_id, date=today)
         total = len(tasks)
         completed = sum(1 for t in tasks if t.completed)
+        
+        logger.info(f"找到 {total} 个任务，已完成 {completed} 个")
 
         return {
             "total": total,

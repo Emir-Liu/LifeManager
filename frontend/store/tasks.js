@@ -40,9 +40,14 @@ const actions = {
     commit('SET_LOADING', true)
     try {
       const result = await get('/tasks/today')
-      commit('SET_TODAY', result.data || result)
+      console.log('获取今日任务响应:', result)
+      // 后端返回 {total, completed, data: [...tasks]}
+      const taskList = result.data || []
+      console.log('提取的任务列表:', taskList)
+      commit('SET_TODAY', taskList)
       return result
     } catch (error) {
+      console.error('获取今日任务失败:', error)
       throw error
     } finally {
       commit('SET_LOADING', false)
