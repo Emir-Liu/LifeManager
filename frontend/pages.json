@@ -5,6 +5,38 @@
 			"style": {
 				"navigationBarTitleText": "托管人生"
 			}
+		},
+		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/register/register",
+			"style": {
+				"navigationBarTitleText": "注册",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/goals/goals",
+			"style": {
+				"navigationBarTitleText": "我的目标"
+			}
+		},
+		{
+			"path": "pages/goals/create",
+			"style": {
+				"navigationBarTitleText": "创建目标"
+			}
+		},
+		{
+			"path": "pages/goals/detail",
+			"style": {
+				"navigationBarTitleText": "目标详情"
+			}
 		}
 	],
 	"globalStyle": {
@@ -13,5 +45,25 @@
 		"navigationBarBackgroundColor": "#007AFF",
 		"backgroundColor": "#F8F8F8"
 	},
-	"uniIdRouter": {}
+	"uniIdRouter": {},
+	"tabBar": {
+		"color": "#999999",
+		"selectedColor": "#007AFF",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "首页",
+				"iconPath": "static/tabbar/home.png",
+				"selectedIconPath": "static/tabbar/home-active.png"
+			},
+			{
+				"pagePath": "pages/goals/goals",
+				"text": "目标",
+				"iconPath": "static/tabbar/goals.png",
+				"selectedIconPath": "static/tabbar/goals-active.png"
+			}
+		]
+	}
 }
