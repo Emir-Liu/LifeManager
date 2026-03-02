@@ -1,6 +1,6 @@
-# 后端设计模式应用
+# Python后端设计模式应用
 
-本文档整理了SOP引擎项目中的设计模式和架构思路。
+本文档整理了Python后端开发中的设计模式和架构思路,适用于各种后端项目。
 
 ## 1. 分层架构设计
 
@@ -61,8 +61,13 @@
 class BaseConversationAnalyzer(ABC):
     """对话分析器抽象基类"""
     
-    def __init__(self, llm_model_name, llm_model_api_key,
-                 llm_model_base_url, llm_model_api_type):
+    def __init__(
+        self, 
+        llm_model_name, 
+        llm_model_api_key,
+        llm_model_base_url, 
+        llm_model_api_type
+    ):
         # 统一的初始化逻辑
         self.llm = LLMOperator(...).get_llm()
     

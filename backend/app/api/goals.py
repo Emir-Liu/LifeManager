@@ -54,6 +54,9 @@ async def create_goal(
             goal_data.deadline
         )
 
+        db.commit()
+        db.refresh(goal)
+
         data = GoalResponse.model_validate(goal)
         return success_response(message="创建成功", data=data.model_dump()).model_dump()
 
@@ -61,6 +64,21 @@ async def create_goal(
         return error_response(code=ErrorCode.GOAL_TITLE_EMPTY, message=str(e)).model_dump()
     except Exception as e:
         return error_response(message=f"创建目标失败: {str(e)}").model_dump()
+
+
+@router.get("/statistics")
+async def get_statistics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    获取目标统计信息
+    """
+    try:
+        stats = goal_service.get_goal_statistics(db, current_user.id)
+        return success_response(data=stats).model_dump()
+    except Exception as e:
+        return error_response(message=f"获取统计信息失败: {str(e)}").model_dump()
 
 
 @router.get("/{goal_id}")
@@ -96,21 +114,6 @@ async def get_goal(
         return error_response(message=str(e)).model_dump()
     except Exception as e:
         return error_response(message=f"获取目标详情失败: {str(e)}").model_dump()
-
-
-@router.get("/statistics")
-async def get_statistics(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    获取目标统计信息
-    """
-    try:
-        stats = goal_service.get_goal_statistics(db, current_user.id)
-        return success_response(data=stats).model_dump()
-    except Exception as e:
-        return error_response(message=f"获取统计信息失败: {str(e)}").model_dump()
 
 
 @router.delete("/{goal_id}")

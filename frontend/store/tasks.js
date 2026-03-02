@@ -41,8 +41,8 @@ const actions = {
     try {
       const result = await get('/tasks/today')
       console.log('获取今日任务响应:', result)
-      // 后端返回 {total, completed, data: [...tasks]}
-      const taskList = result.data || []
+      // request.js 已经返回 data.data，所以 result 直接就是任务数组
+      const taskList = result || []
       console.log('提取的任务列表:', taskList)
       commit('SET_TODAY', taskList)
       return result
@@ -59,7 +59,7 @@ const actions = {
     commit('SET_LOADING', true)
     try {
       const list = await get('/tasks', params)
-      commit('SET_LIST', list.data || list)
+      commit('SET_LIST', list || [])
       return list
     } catch (error) {
       throw error
@@ -103,6 +103,8 @@ const actions = {
 }
 
 const getters = {
+  today: state => state.today,
+  list: state => state.list,
   completedTasks: state => state.today.filter(t => t.completed),
   pendingTasks: state => state.today.filter(t => !t.completed),
   completedCount: state => state.today.filter(t => t.completed).length,

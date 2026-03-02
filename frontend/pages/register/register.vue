@@ -80,35 +80,67 @@ export default {
       if (!this.formData.username) {
         uni.showToast({
           title: '请输入账号',
-          icon: 'none'
+          icon: 'none',
+          duration: 2000
         })
         return
       }
-      if (!this.formData.email) {
+      if (this.formData.username.length < 3) {
         uni.showToast({
-          title: '请输入邮箱',
-          icon: 'none'
+          title: '账号至少3个字符',
+          icon: 'none',
+          duration: 2000
         })
         return
       }
+      if (this.formData.username.length > 50) {
+        uni.showToast({
+          title: '账号最多50个字符',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      
+      // 邮箱为可选字段
+      if (this.formData.email && !this.validateEmail(this.formData.email)) {
+        uni.showToast({
+          title: '邮箱格式不正确',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      
       if (!this.formData.password) {
         uni.showToast({
           title: '请输入密码',
-          icon: 'none'
+          icon: 'none',
+          duration: 2000
         })
         return
       }
       if (this.formData.password.length < 6) {
         uni.showToast({
           title: '密码至少6位',
-          icon: 'none'
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      if (this.formData.password.length > 50) {
+        uni.showToast({
+          title: '密码最多50位',
+          icon: 'none',
+          duration: 2000
         })
         return
       }
       if (this.formData.password !== this.formData.confirmPassword) {
         uni.showToast({
           title: '两次密码不一致',
-          icon: 'none'
+          icon: 'none',
+          duration: 2000
         })
         return
       }
@@ -117,26 +149,61 @@ export default {
       try {
         const res = await this.$store.dispatch('user/register', {
           username: this.formData.username,
-          email: this.formData.email,
+          email: this.formData.email || undefined, // 邮箱为空时传undefined
           password: this.formData.password
         })
         uni.showToast({
           title: '注册成功',
-          icon: 'success'
+          icon: 'success',
+          duration: 1500
         })
         setTimeout(() => {
           uni.switchTab({
             url: '/pages/index/index'
           })
-        }, 1000)
+        }, 1500)
       } catch (error) {
-        uni.showToast({
-          title: error.message || '注册失败',
-          icon: 'none'
-        })
+        console.error('注册失败:', error)
+        let errorMessage = '注册失败，请稍后重试'
+        
+        // 解析后端返回的详细错误信息
+        if (error.data && error.data.reason) {
+          errorMessage = error.data.reason
+        } else if (error.message) {
+          errorMessage = error.message
+        } else if (typeof error === 'string') {
+          errorMessage = error
+        }
+        
+        // 根据不同的错误类型显示更友好的提示
+        if (errorMessage.includes('用户名')) {
+          uni.showToast({
+            title: errorMessage,
+            icon: 'none',
+            duration: 3000
+          })
+        } else if (errorMessage.includes('邮箱')) {
+          uni.showToast({
+            title: errorMessage,
+            icon: 'none',
+            duration: 3000
+          })
+        } else {
+          uni.showToast({
+            title: errorMessage,
+            icon: 'none',
+            duration: 2000
+          })
+        }
       } finally {
         this.loading = false
       }
+    },
+    
+    // 邮箱格式验证
+    validateEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      return re.test(email)
     },
 
     handleLogin() {

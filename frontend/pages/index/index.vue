@@ -29,7 +29,8 @@
 		onLoad() {
 			// 检查登录状态
 			if (this.isLoggedIn) {
-				uni.switchTab({
+				// 登录后跳转到目标页（不是 TabBar 切换）
+				uni.redirectTo({
 					url: '/pages/goals/goals'
 				})
 			}

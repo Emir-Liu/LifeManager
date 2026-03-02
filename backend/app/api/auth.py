@@ -75,18 +75,34 @@ async def register(
     """
     用户注册
 
-    - **username**: 用户名
-    - **password**: 密码
+    - **username**: 用户名 (3-50字符)
+    - **password**: 密码 (6-50字符)
     - **email**: 邮箱（可选）
+    
+    **失败原因**:
+    - 用户名已注册: 该用户名已被其他用户使用
+    - 邮箱已注册: 该邮箱已被其他用户使用
     """
     # 检查用户名是否已注册
     existing_user = db.query(User).filter(User.username == user_data.username).first()
     if existing_user:
         logger.warning(f"注册失败: 用户名已存在 - {user_data.username}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="该用户名已注册"
+        return error_response(
+            code=400,
+            message="注册失败",
+            data={"reason": "该用户名已注册，请更换用户名"}
         )
+    
+    # 检查邮箱是否已注册（如果提供了邮箱）
+    if user_data.email:
+        existing_email_user = db.query(User).filter(User.email == user_data.email).first()
+        if existing_email_user:
+            logger.warning(f"注册失败: 邮箱已存在 - {user_data.email}")
+            return error_response(
+                code=400,
+                message="注册失败",
+                data={"reason": "该邮箱已注册，请更换邮箱"}
+            )
 
     # 创建新用户
     new_user = User(
@@ -95,9 +111,18 @@ async def register(
         email=user_data.email
     )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"注册失败: 数据库错误 - {str(e)}")
+        return error_response(
+            code=500,
+            message="注册失败",
+            data={"reason": "系统错误，请稍后重试"}
+        )
 
     # 生成令牌
     access_token = create_access_token(data={"sub": str(new_user.id)})

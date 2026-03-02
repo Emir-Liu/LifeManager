@@ -34,25 +34,18 @@ class GoalService:
         if not title or not title.strip():
             raise ValueError("目标标题不能为空")
 
-        try:
-            goal = Goal(
-                user_id=user_id,
-                title=title.strip(),
-                description=description,
-                deadline=deadline,
-                status="planning"
-            )
-            db.add(goal)
-            db.commit()
-            db.refresh(goal)
+        goal = Goal(
+            user_id=user_id,
+            title=title.strip(),
+            description=description,
+            deadline=deadline,
+            status="planning"
+        )
+        db.add(goal)
+        # 注意：commit 由 API 层控制
 
-            logger.info(f"创建目标成功: {goal.id}, 用户: {user_id}")
-            return goal
-
-        except Exception as e:
-            db.rollback()
-            logger.error(f"创建目标失败: {e}")
-            raise
+        logger.info(f"创建目标成功: {goal.id}, 用户: {user_id}")
+        return goal
 
     @staticmethod
     def get_user_goals(db: Session, user_id: int, status: Optional[str] = None) -> List[Goal]:
@@ -172,7 +165,7 @@ class GoalService:
         goal = GoalService.get_goal_by_id(db, goal_id, user_id)
 
         db.delete(goal)
-        db.commit()
+        # 注意：commit 由 API 层控制
 
         logger.info(f"删除目标成功: {goal_id}")
         return True

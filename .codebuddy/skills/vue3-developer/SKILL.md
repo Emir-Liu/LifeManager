@@ -377,30 +377,6 @@ if (import.meta.env.DEV) {
 }
 ```
 
-## 持续自我提升
-
-在执行任务过程中,本技能将根据执行结果不断优化自身能力:
-
-### 执行结果分析
-- **代码质量**: 通过代码审查和Lint工具,识别代码问题和改进点
-- **性能数据**: 收集页面加载时间、渲染性能等指标,优化实现方案
-- **Bug模式**: 分析前端错误日志,总结常见问题和解决方案
-- **用户体验**: 收集用户对交互和界面的反馈,优化设计和实现
-
-### 能力提升方向
-1. **组件设计**: 提升组件的可复用性和灵活性,建立更完善的组件库
-2. **状态管理**: 优化状态管理策略,提升代码可维护性
-3. **性能优化**: 深入掌握Vue3性能优化技巧,建立优化方法论
-4. **工程化**: 优化构建配置和开发流程,提升开发效率
-5. **TypeScript**: 提升TypeScript类型设计能力,增强代码健壮性
-
-### 持续改进机制
-- 建立Vue3最佳实践库,总结常用的代码模式和技巧
-- 定期审查组件设计,优化组件API和实现
-- 关注Vue3和生态系统的更新,及时应用新特性
-- 收集和总结常见问题和解决方案
-- 将开发经验转化为可复用的模板和工具函数
-
 ## 使用说明
 
 ### 何时使用本技能
@@ -428,3 +404,196 @@ if (import.meta.env.DEV) {
 - [ ] 性能优化措施到位
 - [ ] 代码注释清晰可读
 - [ ] 没有控制台错误或警告
+
+## 8. SOP引擎前端集成
+
+### 8.1 API接口集成
+
+```typescript
+// api/sop.ts
+import request from '@/utils/request'
+import type { SOPTemplate, ValidationRequest, ValidationResponse } from '@/types/sop'
+
+// 获取SOP模板列表
+export const getSOPTemplates = () => {
+  return request.get<SOPTemplate[]>('/api/v1/sop/templates')
+}
+
+// 获取SOP模板详情
+export const getSOPTemplate = (templateId: string) => {
+  return request.get<SOPTemplate>(`/api/v1/sop/templates/${templateId}`)
+}
+
+// 提交验证任务
+export const validateConversation = (data: ValidationRequest) => {
+  return request.post<ValidationResponse>('/api/v1/sop/validate', data)
+}
+
+// 上传文档
+export const uploadDocument = (file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<{ extraction_id: string }>('/api/v1/sop/extract', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+```
+
+### 8.2 状态管理
+
+```typescript
+// stores/sop.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import type { SOPTemplate } from '@/types/sop'
+
+export const useSOPStore = defineStore('sop', () => {
+  // State
+  const templates = ref<SOPTemplate[]>([])
+  const currentTemplate = ref<SOPTemplate | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  // Getters
+  const templateOptions = computed(() =>
+    templates.value.map(t => ({
+      label: t.template_name,
+      value: t.sop_template_id
+    }))
+  )
+
+  // Actions
+  const fetchTemplates = async () => {
+    loading.value = true
+    error.value = null
+    try {
+      templates.value = await getSOPTemplates()
+    } catch (err: any) {
+      error.value = err.message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const selectTemplate = async (templateId: string) => {
+    currentTemplate.value = await getSOPTemplate(templateId)
+  }
+
+  return {
+    templates,
+    currentTemplate,
+    loading,
+    error,
+    templateOptions,
+    fetchTemplates,
+    selectTemplate
+  }
+})
+```
+
+### 8.3 组件示例
+
+```vue
+<!-- components/SOPValidator.vue -->
+<script setup lang="ts">
+import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { validateConversation } from '@/api/sop'
+import { useSOPStore } from '@/stores/sop'
+
+const sopStore = useSOPStore()
+
+const form = ref({
+  conversation_id: '',
+  conversation_json_path: '',
+  sop_template_id: ''
+})
+
+const loading = ref(false)
+
+const handleValidate = async () => {
+  loading.value = true
+  try {
+    const result = await validateConversation(form.value)
+    ElMessage.success('验证任务已提交')
+    // 处理结果
+  } catch (error: any) {
+    ElMessage.error(error.message || '验证失败')
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<template>
+  <el-card title="SOP验证">
+    <el-form :model="form" label-width="120px">
+      <el-form-item label="SOP模板">
+        <el-select
+          v-model="form.sop_template_id"
+          placeholder="请选择SOP模板"
+        >
+          <el-option
+            v-for="option in sopStore.templateOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+          />
+        </el-select>
+      </el-form-item>
+      
+      <el-form-item>
+        <el-button
+          type="primary"
+          :loading="loading"
+          @click="handleValidate"
+        >
+          开始验证
+        </el-button>
+      </el-form-item>
+    </el-form>
+  </el-card>
+</template>
+```
+
+### 8.4 类型定义
+
+```typescript
+// types/sop.ts
+export interface SOPTemplate {
+  sop_template_id: string
+  template_name: string
+  product_type: string
+  product_subtype: string
+  description: string
+  risk_level: string
+  structure: {
+    node_id: string
+    name: string
+    children: any[]
+  }
+  detection_rules: {
+    completeness_weight: number
+    sequence_weight: number
+    quality_weight: number
+    pass_score: number
+  }
+  version: string
+  status: 'active' | 'inactive'
+}
+
+export interface ValidationRequest {
+  conversation_id: string
+  conversation_json_path: string
+  sop_template_id: string
+  enable_taboo_detection?: boolean
+  enable_sensitive_detection?: boolean
+}
+
+export interface ValidationResponse {
+  validation_id: string
+  status: 'processing' | 'completed' | 'failed'
+  result_json_path?: string
+  processing_time?: number
+}
+```

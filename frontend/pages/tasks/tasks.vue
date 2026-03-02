@@ -18,15 +18,15 @@
     </view>
 
     <!-- 任务列表 -->
-    <scroll-view scroll-y class="task-list" @scrolltolower="loadMore">
+    <scroll-view scroll-y class="task-list" :enable-flex="true">
       <!-- 按日期分组 -->
       <view class="date-group" v-for="(date, idx) in groupedTasks" :key="idx">
         <text class="date-title">{{ formatDate(date.date) }}</text>
 
         <!-- 任务卡片 -->
-        <view 
-          class="task-card" 
-          v-for="task in date.tasks" 
+        <view
+          class="task-card"
+          v-for="task in date.tasks"
           :key="task.id"
           @click="goToTaskDetail(task.id)"
         >
@@ -237,7 +237,9 @@ export default {
 
 .task-list {
   flex: 1;
+  height: 0; /* 配合 flex 使用 */
   padding: 20rpx;
+  box-sizing: border-box;
 }
 
 .date-group {

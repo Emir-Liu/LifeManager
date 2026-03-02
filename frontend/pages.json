@@ -56,6 +56,18 @@
 			"style": {
 				"navigationBarTitleText": "任务详情"
 			}
+		},
+		{
+			"path": "pages/test/e2e-test",
+			"style": {
+				"navigationBarTitleText": "E2E测试"
+			}
+		},
+		{
+			"path": "pages/test/simple-e2e-test",
+			"style": {
+				"navigationBarTitleText": "简易E2E测试"
+			}
 		}
 	],
 	"globalStyle": {
@@ -71,12 +83,6 @@
 		"backgroundColor": "#FFFFFF",
 		"borderStyle": "black",
 		"list": [
-			{
-				"pagePath": "pages/index/index",
-				"text": "首页",
-				"iconPath": "static/tabbar/home.png",
-				"selectedIconPath": "static/tabbar/home-active.png"
-			},
 			{
 				"pagePath": "pages/goals/goals",
 				"text": "目标",

@@ -902,30 +902,6 @@ du -sh /path
 iotop
 ```
 
-## 持续自我提升
-
-在执行任务过程中,本技能将根据执行结果不断优化自身能力:
-
-### 执行结果分析
-- **成功案例**: 总结成功经验,提炼最佳实践,更新技能知识库
-- **失败案例**: 分析失败原因,记录问题和解决方案,避免重复错误
-- **性能指标**: 记录各项操作的性能数据,优化方案和配置
-- **用户反馈**: 收集用户反馈,调整方案和策略
-
-### 能力提升方向
-1. **技术栈扩展**: 根据项目需求学习新技术、新工具、新框架
-2. **方案优化**: 基于实际执行结果,优化CI/CD流水线、容器配置、监控方案
-3. **效率提升**: 总结常用命令和流程,创建自动化脚本和模板
-4. **问题预防**: 建立问题知识库,提前识别和规避潜在风险
-5. **知识沉淀**: 将经验转化为文档、教程、最佳实践指南
-
-### 持续改进机制
-- 执行后进行复盘总结
-- 识别可优化的环节
-- 制定改进计划
-- 更新技能文档和知识库
-- 在后续任务中应用改进
-
 ## 使用说明
 
 ### 何时使用本技能
@@ -943,6 +919,259 @@ iotop
 3. 说明部署环境和要求
 4. 明确监控和告警需求
 5. 提供团队协作方式
+
+## 9. SOP引擎DevOps实践
+
+### 9.1 容器化部署
+
+**Docker Compose配置**
+
+参考`assets/sop_docker_compose.yml`,包含:
+- FastAPI应用服务
+- MySQL数据库
+- Redis缓存和消息队列
+- MinIO对象存储
+- Nginx反向代理
+- Prometheus + Grafana监控
+
+**关键配置要点**:
+```yaml
+services:
+  app:
+    depends_on:
+      db:
+        condition: service_healthy  # 等待数据库健康检查
+      redis:
+        condition: service_started  # Redis启动即可
+      minio:
+        condition: service_healthy  # MinIO健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
+
+### 9.2 监控和告警
+
+**Prometheus配置**
+
+参考`assets/prometheus_sop.yml`:
+- FastAPI应用指标(请求量、响应时间、错误率)
+- MySQL连接池监控
+- Redis连接和队列长度
+- MinIO存储空间
+- 任务处理统计
+
+**告警规则**
+
+参考`assets/alerts_sop.yml`:
+- API错误率过高(>5%)
+- API响应时间过长(P95 > 3s)
+- 任务队列积压(>1000个)
+- 任务失败率过高(>10%)
+- LLM调用失败
+- 数据库连接池耗尽
+- Redis连接失败
+- MinIO存储空间不足(<10%)
+
+### 9.3 日志管理
+
+**Loguru配置示例**
+
+```python
+from loguru import logger
+import sys
+
+# 控制台输出
+logger.remove()
+logger.add(
+    sys.stdout,
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    level="INFO",
+    colorize=True
+)
+
+# 文件输出(按天轮转)
+logger.add(
+    "logs/app_{time:YYYY-MM-DD}.log",
+    rotation="00:00",
+    retention="30 days",
+    compression="zip",
+    level="DEBUG"
+)
+
+# 错误日志单独存储
+logger.add(
+    "logs/error_{time:YYYY-MM-DD}.log",
+    rotation="00:00",
+    retention="90 days",
+    level="ERROR"
+)
+```
+
+**日志收集方案**
+
+```yaml
+# filebeat.yml
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /app/logs/*.log
+  fields:
+    service: sop-engine
+    environment: production
+  fields_under_root: true
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  indices:
+    - index: "sop-engine-%{+yyyy.MM.dd}"
+```
+
+### 9.4 备份策略
+
+**数据库备份**
+
+```bash
+#!/bin/bash
+# backup_sop_db.sh
+
+BACKUP_DIR="/backups/mysql"
+DATE=$(date +%Y%m%d_%H%M%S)
+DB_CONTAINER="sop-engine-mysql"
+DB_NAME="sop_engine"
+
+# 创建备份目录
+mkdir -p $BACKUP_DIR
+
+# 备份数据库
+docker exec $DB_CONTAINER mysqldump -uroot -ppassword $DB_NAME > $BACKUP_DIR/sop_db_$DATE.sql
+
+# 压缩备份
+gzip $BACKUP_DIR/sop_db_$DATE.sql
+
+# 删除7天前的备份
+find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
+
+echo "Backup completed: sop_db_$DATE.sql.gz"
+```
+
+**MinIO备份**
+
+```bash
+#!/bin/bash
+# backup_minio.sh
+
+BACKUP_DIR="/backups/minio"
+DATE=$(date +%Y%m%d_%H%M%S)
+BUCKET="sop-templates-bucket"
+
+# 使用mc工具备份
+mc mirror minio/$BUCKET $BACKUP_DIR/$BUCKET_$DATE
+
+# 打包压缩
+cd $BACKUP_DIR
+tar -czf $BUCKET_$DATE.tar.gz $BUCKET_$DATE
+rm -rf $BUCKET_$DATE
+
+# 删除30天前的备份
+find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
+```
+
+### 9.5 性能优化
+
+**应用层优化**
+
+1. **连接池配置**
+```python
+# 数据库连接池
+from sqlalchemy.pool import QueuePool
+
+engine = create_engine(
+    DATABASE_URL,
+    poolclass=QueuePool,
+    pool_size=20,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=3600
+)
+
+# Redis连接池
+from redis import ConnectionPool
+
+redis_pool = ConnectionPool(
+    host='redis',
+    port=6379,
+    db=0,
+    max_connections=50
+)
+```
+
+2. **异步任务优化**
+```python
+# 使用线程池处理并发任务
+from concurrent.futures import ThreadPoolExecutor
+
+worker = TaskWorker(max_workers=10)  # 根据CPU核心数调整
+```
+
+3. **缓存策略**
+```python
+# 结果缓存
+@lru_cache(maxsize=100)
+def get_sop_template(template_id: str):
+    # 从数据库或MinIO加载
+    pass
+
+# Redis缓存
+def get_template_from_cache(template_id: str):
+    cache_key = f"sop:template:{template_id}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
+    # 从数据库加载
+    template = load_template(template_id)
+    # 缓存1小时
+    redis_client.setex(cache_key, 3600, json.dumps(template))
+    return template
+```
+
+### 9.6 故障排查
+
+**常见问题处理**
+
+1. **LLM调用超时**
+```bash
+# 查看LLM调用日志
+docker logs sop-engine-app | grep "LLM call"
+
+# 查看任务状态
+curl http://localhost:8000/api/v1/tasks/status
+```
+
+2. **数据库连接失败**
+```bash
+# 检查数据库容器状态
+docker ps | grep mysql
+
+# 检查数据库健康
+docker exec sop-engine-mysql mysqladmin ping -h localhost
+
+# 查看数据库日志
+docker logs sop-engine-mysql
+```
+
+3. **Redis队列积压**
+```bash
+# 查看队列长度
+docker exec sop-engine-redis redis-cli LLEN sop_task_queue
+
+# 查看消费者状态
+docker logs sop-engine-app | grep "Task worker"
+```
 
 ## 质量检查清单
 

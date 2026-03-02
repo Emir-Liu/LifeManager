@@ -43,21 +43,21 @@ app.include_router(reminders.router, prefix="/api", tags=["提醒"])
 app.include_router(statistics.router, prefix="/api", tags=["统计"])
 
 
-# @app.get("/")
-# async def root():
-#     """根路径"""
-#     return {
-#         "app": settings.APP_NAME,
-#         "version": settings.APP_VERSION,
-#         "status": "running",
-#         "docs": "/docs"
-#     }
+@app.get("/")
+async def root():
+    """根路径"""
+    return {
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "status": "running",
+        "docs": "/docs"
+    }
 
 
-# @app.get("/health")
-# async def health_check():
-#     """健康检查"""
-#     return {"status": "healthy"}
+@app.get("/health")
+async def health_check():
+    """健康检查"""
+    return {"status": "healthy"}
 
 
 if __name__ == "__main__":

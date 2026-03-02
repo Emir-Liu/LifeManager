@@ -31,27 +31,42 @@ function request(options) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           const data = res.data
           if (data.code === 0) {
+            // 成功响应
             resolve(data.data)
-          } else if (data.code === 401) {
-            // token 过期，跳转登录页
-            uni.removeStorageSync('token')
-            uni.removeStorageSync('userInfo')
-            uni.navigateTo({
-              url: '/pages/login/login'
-            })
-            reject(new Error(data.message || '登录已过期'))
           } else {
-            reject(new Error(data.message || '请求失败'))
+            // 业务错误（非200的错误码）
+            // 检查是否有详细的错误原因
+            let errorMessage = data.message || '请求失败'
+            let errorData = data.data || {}
+            
+            // 如果有详细的reason字段，优先使用
+            if (errorData.reason) {
+              errorMessage = errorData.reason
+            }
+            
+            // 构造错误对象，包含详细信息
+            const error = new Error(errorMessage)
+            error.data = errorData
+            error.code = data.code
+            
+            reject(error)
           }
         } else if (res.statusCode === 400 || res.statusCode === 422) {
           // 处理校验错误
-          const errorMsg = res.data?.detail || res.data?.message || '请求参数错误'
-          uni.showToast({
-            title: errorMsg,
-            icon: 'none'
-          })
+          let errorMsg = res.data?.detail || res.data?.message || '请求参数错误'
+          
+          // 尝试解析Pydantic验证错误
+          if (res.data?.detail && Array.isArray(res.data.detail)) {
+            // Pydantic验证错误数组
+            const errors = res.data.detail.map(err => 
+              err.msg || '参数错误'
+            )
+            errorMsg = errors.join('; ')
+          }
+          
           reject(new Error(errorMsg))
         } else {
+          // 其他HTTP错误
           const errorMsg = res.data?.detail || res.data?.message || `请求失败: ${res.statusCode}`
           reject(new Error(errorMsg))
         }

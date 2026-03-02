@@ -36,8 +36,13 @@
       <view v-for="goal in filteredGoals" :key="goal.id" class="goal-card" @tap="handleGoalDetail(goal.id)">
         <view class="goal-header">
           <text class="goal-title">{{ goal.title }}</text>
-          <view class="goal-status" :class="goal.status">
-            {{ getStatusText(goal.status) }}
+          <view class="goal-actions">
+            <view class="goal-status" :class="goal.status">
+              {{ getStatusText(goal.status) }}
+            </view>
+            <view class="delete-btn" @tap.stop="handleDelete(goal.id)">
+              <text class="delete-icon">×</text>
+            </view>
           </view>
         </view>
 
@@ -141,6 +146,32 @@ export default {
     handleCreate() {
       uni.navigateTo({
         url: '/pages/goals/create'
+      })
+    },
+
+    handleDelete(goalId) {
+      uni.showModal({
+        title: '确认删除',
+        content: '删除后将无法恢复，确定要删除该目标吗？',
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              await goalApi.deleteGoal(goalId)
+              uni.showToast({
+                title: '删除成功',
+                icon: 'success'
+              })
+              // 刷新列表
+              this.loadGoals()
+              this.loadStats()
+            } catch (error) {
+              uni.showToast({
+                title: error.message || '删除失败',
+                icon: 'none'
+              })
+            }
+          }
+        }
       })
     },
 
@@ -255,10 +286,32 @@ export default {
   flex: 1;
 }
 
+.goal-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
 .goal-status {
   padding: 8rpx 20rpx;
   border-radius: 20rpx;
   font-size: 24rpx;
+}
+
+.delete-btn {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #FFF3E0;
+}
+
+.delete-icon {
+  font-size: 40rpx;
+  color: #FF5722;
+  font-weight: bold;
 }
 
 .goal-status.in_progress {

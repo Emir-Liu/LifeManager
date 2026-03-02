@@ -26,6 +26,7 @@ class LLMOperator:
         if api_type == 'openai':
             from langchain_openai import ChatOpenAI
             if 'qwen3' in low_model_name:
+                # vllm 本地部署的 qwen3 模型需要使用 extra_body 传递 chat_template_kwargs
                 llm: ChatOpenAI = ChatOpenAI(
                     model=model_name,
                     base_url=base_url,
@@ -33,8 +34,7 @@ class LLMOperator:
                     streaming=False,
                     max_retries=5,
                     temperature=0.7,
-                    model_kwargs={
-                        # 下面是vllm本地部署的配置
+                    extra_body={
                         "chat_template_kwargs": {"enable_thinking": False},
                     }
                 )
@@ -52,6 +52,7 @@ class LLMOperator:
         elif api_type == 'bailian':
             from langchain_openai import ChatOpenAI
             if 'qwen3' in low_model_name:
+                # 千问平台的 qwen3 模型
                 llm: ChatOpenAI = ChatOpenAI(
                     model=model_name,
                     base_url=base_url,
@@ -59,8 +60,7 @@ class LLMOperator:
                     streaming=False,
                     max_retries=5,
                     temperature=0.7,
-                    model_kwargs={
-                        # 下面是使用千问平台的配置
+                    extra_body={
                         "enable_thinking": False,
                     }
                 )

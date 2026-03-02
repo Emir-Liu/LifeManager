@@ -58,11 +58,7 @@ async def get_today_tasks(
 
         tasks_data = [TaskResponse.model_validate(t).model_dump() for t in result["data"]]
 
-        return success_response(data={
-            "total": result["total"],
-            "completed": result["completed"],
-            "data": tasks_data
-        }).model_dump()
+        return success_response(data=tasks_data).model_dump()
 
     except Exception as e:
         return error_response(message=f"获取今日任务失败: {str(e)}").model_dump()
