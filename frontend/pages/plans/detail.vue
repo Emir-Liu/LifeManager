@@ -127,13 +127,13 @@ export default {
       try {
         // 获取目标信息
         this.goal = await this.fetchGoalDetail(goalId)
-        
+
         // 生成规划
-        this.plan = await this.generatePlan({
+        this.plan = await this.$store.dispatch('plans/generatePlan', {
           goalId: goalId,
           availableHoursPerDay: 2
         })
-        
+
         uni.showToast({
           title: '规划生成成功',
           icon: 'success'
@@ -152,10 +152,10 @@ export default {
       if (!this.plan) return
 
       try {
-        const result = await this.confirmPlan({
+        const result = await this.$store.dispatch('plans/confirmPlan', {
           planId: this.plan.id
         })
-        
+
         uni.showToast({
           title: `已创建 ${result.tasks_created} 个任务`,
           icon: 'success'
