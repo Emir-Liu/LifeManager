@@ -7,13 +7,14 @@ from loguru import logger
 
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, decode_token
+from app.core.response import success_response, error_response
 from app.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
 
 router = APIRouter()
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 async def login(
     user_data: UserLogin,
     db: Session = Depends(get_db)
@@ -21,29 +22,29 @@ async def login(
     """
     用户登录
 
-    - **phone**: 手机号
+    - **username**: 用户名
     - **password**: 密码
     """
     # 查找用户
-    user = db.query(User).filter(User.phone == user_data.phone).first()
+    user = db.query(User).filter(User.username == user_data.username).first()
     if not user:
-        logger.warning(f"登录失败: 用户不存在 - {user_data.phone}")
+        logger.warning(f"登录失败: 用户不存在 - {user_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="手机号或密码错误"
+            detail="用户名或密码错误"
         )
 
     # 验证密码
     if not verify_password(user_data.password, user.password_hash):
-        logger.warning(f"登录失败: 密码错误 - {user_data.phone}")
+        logger.warning(f"登录失败: 密码错误 - {user_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="手机号或密码错误"
+            detail="用户名或密码错误"
         )
 
     # 检查用户是否激活
     if not user.is_active:
-        logger.warning(f"登录失败: 用户未激活 - {user_data.phone}")
+        logger.warning(f"登录失败: 用户未激活 - {user_data.username}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="账号已被禁用"
@@ -53,16 +54,20 @@ async def login(
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
-    logger.info(f"用户登录成功: {user.phone}")
+    logger.info(f"用户登录成功: {user.username}")
 
-    return Token(
-        user_id=user.id,
-        token=access_token,
-        refresh_token=refresh_token
+    return success_response(
+        data={
+            "user_id": user.id,
+            "username": user.username,
+            "token": access_token,
+            "refresh_token": refresh_token
+        },
+        message="登录成功"
     )
 
 
-@router.post("/register", response_model=Token)
+@router.post("/register")
 async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
@@ -70,44 +75,73 @@ async def register(
     """
     用户注册
 
-    - **phone**: 手机号
-    - **password**: 密码
-    - **nickname**: 昵称（可选）
+    - **username**: 用户名 (3-50字符)
+    - **password**: 密码 (6-50字符)
+    - **email**: 邮箱（可选）
+    
+    **失败原因**:
+    - 用户名已注册: 该用户名已被其他用户使用
+    - 邮箱已注册: 该邮箱已被其他用户使用
     """
-    # 检查手机号是否已注册
-    existing_user = db.query(User).filter(User.phone == user_data.phone).first()
+    # 检查用户名是否已注册
+    existing_user = db.query(User).filter(User.username == user_data.username).first()
     if existing_user:
-        logger.warning(f"注册失败: 手机号已存在 - {user_data.phone}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="该手机号已注册"
+        logger.warning(f"注册失败: 用户名已存在 - {user_data.username}")
+        return error_response(
+            code=400,
+            message="注册失败",
+            data={"reason": "该用户名已注册，请更换用户名"}
         )
+    
+    # 检查邮箱是否已注册（如果提供了邮箱）
+    if user_data.email:
+        existing_email_user = db.query(User).filter(User.email == user_data.email).first()
+        if existing_email_user:
+            logger.warning(f"注册失败: 邮箱已存在 - {user_data.email}")
+            return error_response(
+                code=400,
+                message="注册失败",
+                data={"reason": "该邮箱已注册，请更换邮箱"}
+            )
 
     # 创建新用户
     new_user = User(
-        phone=user_data.phone,
+        username=user_data.username,
         password_hash=get_password_hash(user_data.password),
-        nickname=user_data.nickname or f"用户{user_data.phone[-4:]}"
+        email=user_data.email
     )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"注册失败: 数据库错误 - {str(e)}")
+        return error_response(
+            code=500,
+            message="注册失败",
+            data={"reason": "系统错误，请稍后重试"}
+        )
 
     # 生成令牌
     access_token = create_access_token(data={"sub": str(new_user.id)})
     refresh_token = create_refresh_token(data={"sub": str(new_user.id)})
 
-    logger.info(f"新用户注册成功: {new_user.phone}")
+    logger.info(f"新用户注册成功: {new_user.username}")
 
-    return Token(
-        user_id=new_user.id,
-        token=access_token,
-        refresh_token=refresh_token
+    return success_response(
+        data={
+            "user_id": new_user.id,
+            "username": new_user.username,
+            "token": access_token,
+            "refresh_token": refresh_token
+        },
+        message="注册成功"
     )
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh")
 async def refresh_token(
     refresh_token: str,
     db: Session = Depends(get_db)
@@ -138,10 +172,13 @@ async def refresh_token(
     access_token = create_access_token(data={"sub": str(user.id)})
     new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
-    logger.info(f"令牌刷新成功: {user.phone}")
+    logger.info(f"令牌刷新成功: {user.username}")
 
-    return Token(
-        user_id=user.id,
-        token=access_token,
-        refresh_token=new_refresh_token
+    return success_response(
+        data={
+            "user_id": user.id,
+            "token": access_token,
+            "refresh_token": new_refresh_token
+        },
+        message="刷新成功"
     )

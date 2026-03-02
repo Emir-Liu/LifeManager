@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: lifemanager-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: lifemanager
+      MYSQL_USER: lifemanager
+      MYSQL_PASSWORD: lifemanager_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - lifemanager-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 后端API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lifemanager-backend
+    environment:
+      DB_TYPE: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: lifemanager
+      DB_PASSWORD: lifemanager_password
+      DB_NAME: lifemanager
+      DATABASE_URL: mysql+pymysql://lifemanager:lifemanager_password@mysql:3306/lifemanager?charset=utf8mb4
+      LLM_MODEL_NAME: qwen3_32b_awq
+      LLM_MODEL_BASE_URL: http://host.docker.internal:12300/v1
+      LLM_MODEL_API_KEY: ${LLM_MODEL_API_KEY:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - lifemanager-network
+    volumes:
+      - ./backend/logs:/app/logs
+      - backend_data:/app/data
+    command: >
+      sh -c "python init_db.py &&
+             python seed_data.py &&
+             uvicorn main:app --host 0.0.0.0 --port 8000"
+
+  # Redis缓存（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: lifemanager-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lifemanager-network
+
+  # Nginx反向代理（可选）
+  nginx:
+    image: nginx:alpine
+    container_name: lifemanager-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - lifemanager-network
+
+volumes:
+  mysql_data:
+  backend_data:
+  redis_data:
+
+networks:
+  lifemanager-network:
+    driver: bridge

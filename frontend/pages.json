@@ -1,0 +1,100 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "托管人生",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/register/register",
+			"style": {
+				"navigationBarTitleText": "注册",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/goals/goals",
+			"style": {
+				"navigationBarTitleText": "我的目标"
+			}
+		},
+		{
+			"path": "pages/goals/create",
+			"style": {
+				"navigationBarTitleText": "创建目标"
+			}
+		},
+		{
+			"path": "pages/goals/detail",
+			"style": {
+				"navigationBarTitleText": "目标详情"
+			}
+		},
+		{
+			"path": "pages/plans/detail",
+			"style": {
+				"navigationBarTitleText": "规划详情"
+			}
+		},
+		{
+			"path": "pages/tasks/tasks",
+			"style": {
+				"navigationBarTitleText": "今日任务"
+			}
+		},
+		{
+			"path": "pages/tasks/detail",
+			"style": {
+				"navigationBarTitleText": "任务详情"
+			}
+		},
+		{
+			"path": "pages/test/e2e-test",
+			"style": {
+				"navigationBarTitleText": "E2E测试"
+			}
+		},
+		{
+			"path": "pages/test/simple-e2e-test",
+			"style": {
+				"navigationBarTitleText": "简易E2E测试"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "托管人生",
+		"navigationBarBackgroundColor": "#007AFF",
+		"backgroundColor": "#F8F8F8"
+	},
+	"uniIdRouter": {},
+	"tabBar": {
+		"color": "#999999",
+		"selectedColor": "#6366f1",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/goals/goals",
+				"text": "目标",
+				"iconPath": "static/tabbar/goals.png",
+				"selectedIconPath": "static/tabbar/goals-active.png"
+			},
+			{
+				"pagePath": "pages/tasks/tasks",
+				"text": "任务",
+				"iconPath": "static/tabbar/tasks.png",
+				"selectedIconPath": "static/tabbar/tasks-active.png"
+			}
+		]
+	}
+}

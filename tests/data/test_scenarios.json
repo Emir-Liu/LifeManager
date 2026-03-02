@@ -1,0 +1,229 @@
+{
+  "scenarios": [
+    {
+      "id": "register_success",
+      "name": "用户注册成功",
+      "description": "测试用户成功注册并自动登录的完整流程",
+      "category": "auth",
+      "priority": "high",
+      "steps": [
+        {
+          "id": "step_1",
+          "name": "加载注册页面",
+          "action": "load_page",
+          "params": {
+            "page": "register"
+          },
+          "wait_after": 500
+        },
+        {
+          "id": "step_2",
+          "name": "填写用户名",
+          "action": "fill_form",
+          "params": {
+            "field": "username",
+            "value": "testuser_{{timestamp}}"
+          },
+          "wait_after": 200
+        },
+        {
+          "id": "step_3",
+          "name": "填写邮箱",
+          "action": "fill_form",
+          "params": {
+            "field": "email",
+            "value": "test_{{timestamp}}@example.com"
+          },
+          "wait_after": 200
+        },
+        {
+          "id": "step_4",
+          "name": "填写密码",
+          "action": "fill_form",
+          "params": {
+            "field": "password",
+            "value": "Password123"
+          },
+          "wait_after": 200
+        },
+        {
+          "id": "step_5",
+          "name": "确认密码",
+          "action": "fill_form",
+          "params": {
+            "field": "confirmPassword",
+            "value": "Password123"
+          },
+          "wait_after": 200
+        },
+        {
+          "id": "step_6",
+          "name": "点击注册按钮",
+          "action": "click",
+          "params": {
+            "action": "register"
+          },
+          "wait_after": 2000
+        }
+      ],
+      "assertions": [
+        {
+          "type": "request_sent",
+          "url_pattern": "/auth/register",
+          "method": "POST"
+        },
+        {
+          "type": "response_status",
+          "url_pattern": "/auth/register",
+          "expected_status": 200
+        },
+        {
+          "type": "response_contains",
+          "url_pattern": "/auth/register",
+          "path": "code",
+          "expected_value": 0
+        },
+        {
+          "type": "database",
+          "check": "user_exists",
+          "criteria": {
+            "username": "testuser_{{timestamp}}"
+          }
+        }
+      ]
+    },
+    {
+      "id": "login_success",
+      "name": "用户登录成功",
+      "description": "测试已注册用户成功登录",
+      "category": "auth",
+      "priority": "high",
+      "prerequisites": ["user_exists"],
+      "steps": [
+        {
+          "id": "step_1",
+          "name": "加载登录页面",
+          "action": "load_page",
+          "params": {
+            "page": "login"
+          },
+          "wait_after": 500
+        },
+        {
+          "id": "step_2",
+          "name": "填写用户名",
+          "action": "fill_form",
+          "params": {
+            "field": "username",
+            "value": "{{prerequisite.user.username}}"
+          },
+          "wait_after": 200
+        },
+        {
+          "id": "step_3",
+          "name": "填写密码",
+          "action": "fill_form",
+          "params": {
+            "field": "password",
+            "value": "{{prerequisite.user.password}}"
+          },
+          "wait_after": 200
+        },
+        {
+          "id": "step_4",
+          "name": "点击登录按钮",
+          "action": "click",
+          "params": {
+            "action": "login"
+          },
+          "wait_after": 2000
+        }
+      ],
+      "assertions": [
+        {
+          "type": "request_sent",
+          "url_pattern": "/auth/login",
+          "method": "POST"
+        },
+        {
+          "type": "response_contains",
+          "url_pattern": "/auth/login",
+          "path": "data.token",
+          "expected_value": "not_null"
+        }
+      ]
+    },
+    {
+      "id": "register_duplicate_username",
+      "name": "注册重复用户名",
+      "description": "测试使用已存在的用户名注册应失败",
+      "category": "auth",
+      "priority": "medium",
+      "prerequisites": ["user_exists"],
+      "steps": [
+        {
+          "id": "step_1",
+          "name": "加载注册页面",
+          "action": "load_page",
+          "params": {
+            "page": "register"
+          },
+          "wait_after": 500
+        },
+        {
+          "id": "step_2",
+          "name": "填写已存在的用户名",
+          "action": "fill_form",
+          "params": {
+            "data": {
+              "username": "{{prerequisite.user.username}}",
+              "email": "another@example.com",
+              "password": "Password123",
+              "confirmPassword": "Password123"
+            }
+          },
+          "wait_after": 200
+        },
+        {
+          "id": "step_3",
+          "name": "点击注册按钮",
+          "action": "click",
+          "params": {
+            "action": "register"
+          },
+          "wait_after": 1000
+        }
+      ],
+      "assertions": [
+        {
+          "type": "response_status",
+          "url_pattern": "/auth/register",
+          "expected_status": 400
+        }
+      ]
+    }
+  ],
+  "test_data": {
+    "users": [
+      {
+        "username": "e2e_test_user",
+        "email": "e2e@test.com",
+        "password": "TestPass123"
+      }
+    ],
+    "goals": [
+      {
+        "title": "测试目标1",
+        "description": "这是一个测试目标",
+        "status": "planning"
+      }
+    ]
+  },
+  "config": {
+    "base_url": "http://localhost:8000",
+    "frontend_url": "http://localhost:8080",
+    "websocket_port": 8765,
+    "default_timeout": 10000,
+    "screenshot_on_failure": true
+  }
+}
