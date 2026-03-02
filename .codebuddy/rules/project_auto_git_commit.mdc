@@ -4,7 +4,7 @@
 `project_auto_git_commit`
 
 ## 规则描述
-在每次文件修改后自动将更改提交到 Git 仓库，确保代码变更及时记录。
+在每次文件修改后自动将更改提交到 Git 仓库并推送到远程分支，确保代码变更及时记录和同步。
 
 ## 执行条件
 - ✅ 任何代码文件被修改、创建或删除
@@ -38,10 +38,16 @@ git add .
 git commit -m "[生成的提交信息]"
 ```
 
-### 5. 推送到远程 (可选)
-根据需求决定是否自动推送：
+### 5. 推送到远程 (自动)
+**自动推送到当前分支的远程仓库**：
 ```bash
-git push
+git push origin [当前分支名]
+```
+
+如果推送失败（如远程有更新），会提示用户先拉取：
+```bash
+git pull --rebase origin [当前分支名]
+git push origin [当前分支名]
 ```
 
 ## 例外处理
@@ -50,6 +56,7 @@ git push
 |------|----------|
 | 无更改 | 跳过提交流程，输出"无更改需要提交" |
 | 提交冲突 | 提示用户手动解决冲突后再提交 |
+| 推送冲突（远程有更新） | 自动执行 `git pull --rebase`，然后重新推送 |
 | 提交信息不满意 | 允许用户手动修改提交信息 |
 | 需要分批提交 | 用户可手动控制暂存区域 |
 
@@ -68,6 +75,7 @@ use_skill(command="git-manager")
 # 自动执行:
 git add backend/app/services/ai_service.py
 git commit -m "fix: update AI service error handling"
+git push origin develop
 ```
 
 ### 场景 2: 多文件变更
@@ -76,6 +84,7 @@ git commit -m "fix: update AI service error handling"
 # 自动执行:
 git add .
 git commit -m "feat: implement user authentication flow"
+git push origin develop
 ```
 
 ### 场景 3: 新增功能
@@ -84,14 +93,16 @@ git commit -m "feat: implement user authentication flow"
 # 自动执行:
 git add .
 git commit -m "feat: add task management module"
+git push origin develop
 ```
 
 ## 注意事项
 
 1. **提交信息质量**: 生成的提交信息应清晰描述变更内容
-2. **分支安全**: 始终提交到当前分支，避免错误提交到主分支
-3. **推送策略**: 默认不自动推送，需要用户明确推送时再执行
+2. **分支安全**: 始终提交到当前分支，避免错误提交到主分支（如 main/master）
+3. **自动推送**: **默认自动推送到远程仓库**，确保代码同步
 4. **冲突处理**: 遇到合并冲突时暂停自动提交，提示用户处理
+5. **推送分支**: 推送前确认当前分支名称，避免推送错误分支
 
 ## 验证规则生效
 
@@ -102,6 +113,9 @@ git log --oneline -5
 
 # 查看详细提交信息
 git log -1 --stat
+
+# 检查远程同步状态
+git status
 ```
 
 ## 禁用规则
@@ -113,6 +127,7 @@ git log -1 --stat
 
 ---
 
-**版本**: 1.0.0  
-**创建日期**: 2026-01-29  
+**版本**: 1.1.0  
+**更新日期**: 2026-03-02  
+**变更**: 增加自动推送到远程仓库功能  
 **状态**: 生效中
