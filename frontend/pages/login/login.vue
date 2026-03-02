@@ -81,7 +81,7 @@ export default {
         })
         setTimeout(() => {
           uni.switchTab({
-            url: '/pages/index/index'
+            url: '/pages/goals/goals'
           })
         }, 1000)
       } catch (error) {
