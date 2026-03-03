@@ -10,6 +10,7 @@ from loguru import logger
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.api import auth, users, goals, plans, tasks, reminders, statistics
+from app.api.v1 import conversations, events, timeline, time_preferences
 
 
 # 创建 FastAPI 应用
@@ -41,6 +42,10 @@ app.include_router(plans.router, prefix="/api", tags=["规划"])
 app.include_router(tasks.router, prefix="/api", tags=["任务"])
 app.include_router(reminders.router, prefix="/api", tags=["提醒"])
 app.include_router(statistics.router, prefix="/api", tags=["统计"])
+app.include_router(conversations.router, prefix="/api", tags=["对话"])
+app.include_router(events.router, prefix="/api", tags=["日程"])
+app.include_router(time_preferences.router, prefix="/api", tags=["时间偏好"])
+app.include_router(timeline.router, prefix="/api", tags=["时间线"])
 
 
 @app.get("/")

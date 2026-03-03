@@ -1,7 +1,7 @@
-"""
-目标模型 - Phase 2 增强版本
+"""目标模型 - Phase 2 增强版本
 支持目标层级、优先级管理
 """
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, func

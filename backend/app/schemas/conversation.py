@@ -109,7 +109,7 @@ class MessageBase(BaseModel):
 class MessageCreate(MessageBase):
     """创建消息"""
     model_used: Optional[str] = Field(None, max_length=50, description="使用的AI模型")
-    tokens_used: Optional[int] = Field(None, ge=0, default=0, description="消耗的token数")
+    tokens_used: Optional[int] = Field(default=0, ge=0, description="消耗的token数")
 
 
 class MessageResponse(MessageBase):

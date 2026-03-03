@@ -1,16 +1,13 @@
-import { createStore } from 'vuex'
-import user from './user.js'
-import goals from './goals.js'
-import plans from './plans.js'
-import tasks from './tasks.js'
+import { createPinia } from 'pinia'
 
-const store = createStore({
-  modules: {
-    user,
-    goals,
-    plans,
-    tasks
-  }
-})
+const pinia = createPinia()
 
-export default store
+export default pinia
+
+// 导出所有 stores
+export { useUserStore } from './user.js'
+export { useGoalsStore } from './goals.js'
+export { usePlansStore } from './plans.js'
+export { useTasksStore } from './tasks.js'
+export { useConversationStore } from './conversation.js'
+export { useTimePreferencesStore } from './timePreferences.js'

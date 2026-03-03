@@ -58,6 +58,18 @@
 			}
 		},
 		{
+			"path": "pages/conversation/conversation",
+			"style": {
+				"navigationBarTitleText": "智能助手"
+			}
+		},
+		{
+			"path": "pages/timeline/timeline",
+			"style": {
+				"navigationBarTitleText": "时间线"
+			}
+		},
+		{
 			"path": "pages/test/e2e-test",
 			"style": {
 				"navigationBarTitleText": "E2E测试"
@@ -94,6 +106,12 @@
 				"text": "任务",
 				"iconPath": "static/tabbar/tasks.png",
 				"selectedIconPath": "static/tabbar/tasks-active.png"
+			},
+			{
+				"pagePath": "pages/timeline/timeline",
+				"text": "时间线",
+				"iconPath": "static/tabbar/goals.png",
+				"selectedIconPath": "static/tabbar/goals-active.png"
 			}
 		]
 	}

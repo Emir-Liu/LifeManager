@@ -1,7 +1,6 @@
-"""
-用户模型 - Phase 2 增强版本
-"""
-from typing import TYPE_CHECKING
+"""用户模型 - Phase 2 增强版本"""
+from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Column, Integer, String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
