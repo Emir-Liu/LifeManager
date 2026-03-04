@@ -2,17 +2,36 @@
 
 **问题**: HBuilderX在Chrome浏览器运行时页面空白
 
-**原因**: 
+**第一次错误**:
+```
+index.js:8 Uncaught SyntaxError: The requested module '/store/user.js' does not provide an export named 'useUserStore'
+```
+
+**根本原因**:
 - `main.js`中使用了Vuex，但`store/index.js`导出的是Pinia
+- 所有store文件(user.js, tasks.js, goals.js, plans.js)都是Vuex格式
 - 多个页面使用了Vuex的`mapGetters`、`mapActions`等辅助函数
 
-**解决方案**: 将所有Vuex引用替换为Pinia
+**解决方案**: 将所有Vuex store转换为Pinia store
 
 ---
 
 ## 修复内容
 
-### 1. main.js 修复
+### 1. Store文件转换
+
+将所有Vuex store转换为Pinia store：
+
+| Store文件 | 修改内容 | 状态 |
+|-----------|---------|------|
+| store/user.js | Vuex → Pinia (defineStore) | ✅ |
+| store/tasks.js | Vuex → Pinia (defineStore) | ✅ |
+| store/goals.js | Vuex → Pinia (defineStore) | ✅ |
+| store/plans.js | Vuex → Pinia (defineStore) | ✅ |
+| store/conversation.js | 已是Pinia | ✅ |
+| store/timePreferences.js | 已是Pinia | ✅ |
+
+### 2. main.js 修复
 
 **修改前**:
 ```javascript
@@ -60,9 +79,71 @@ export function createApp() {
 
 ## 具体修改示例
 
+### Store转换示例 (Vuex → Pinia)
+
+**Vuex格式 (修改前)**:
+```javascript
+const state = {
+  token: '',
+  userInfo: null
+}
+
+const mutations = {
+  SET_TOKEN(state, token) {
+    state.token = token
+  }
+}
+
+const actions = {
+  async login({ commit }, credentials) {
+    const data = await post('/auth/login', credentials)
+    commit('SET_TOKEN', data.token)
+    return data
+  }
+}
+
+const getters = {
+  isLoggedIn: state => !!state.token
+}
+
+export default {
+  namespaced: true,
+  state,
+  mutations,
+  actions,
+  getters
+}
+```
+
+**Pinia格式 (修改后)**:
+```javascript
+import { defineStore } from 'pinia'
+
+export const useUserStore = defineStore('user', {
+  state: () => ({
+    token: '',
+    userInfo: null
+  }),
+
+  getters: {
+    isLoggedIn: (state) => !!state.token
+  },
+
+  actions: {
+    async login(credentials) {
+      const data = await post('/auth/login', credentials)
+      this.token = data.token
+      return data
+    }
+  }
+})
+```
+
+---
+
 ### 示例1: 从 mapGetters 到 Pinia
 
-**修改前**:
+**修改前 (Vue2/Vuex)**:
 ```javascript
 import { mapGetters } from 'vuex'
 
@@ -73,7 +154,7 @@ export default {
 }
 ```
 
-**修改后**:
+**修改后 (Vue3/Pinia)**:
 ```javascript
 import { useUserStore } from '@/store'
 
@@ -87,16 +168,27 @@ export default {
 }
 ```
 
+**或者使用Vue3的setup语法 (更推荐)**:
+```vue
+<script setup>
+import { computed } from 'vue'
+import { useUserStore } from '@/store'
+
+const userStore = useUserStore()
+const isLoggedIn = computed(() => userStore.isLoggedIn)
+</script>
+```
+
 ### 示例2: 从 mapActions 到 Pinia
 
-**修改前**:
+**修改前 (Vue2/Vuex)**:
 ```javascript
 import { mapActions } from 'vuex'
 
 export default {
   methods: {
     ...mapActions('tasks', ['fetchTodayTasks', 'completeTask']),
-    
+
     async loadTasks() {
       await this.fetchTodayTasks()
     }
@@ -104,7 +196,7 @@ export default {
 }
 ```
 
-**修改后**:
+**修改后 (Vue3/Pinia - Options API)**:
 ```javascript
 import { useTasksStore } from '@/store'
 
@@ -118,9 +210,22 @@ export default {
 }
 ```
 
+**修改后 (Vue3/Pinia - Composition API - 推荐)**:
+```vue
+<script setup>
+import { useTasksStore } from '@/store'
+
+const tasksStore = useTasksStore()
+
+const loadTasks = async () => {
+  await tasksStore.fetchTodayTasks()
+}
+</script>
+```
+
 ### 示例3: 从 $store.dispatch 到 Pinia
 
-**修改前**:
+**修改前 (Vue2/Vuex)**:
 ```javascript
 export default {
   methods: {
@@ -131,7 +236,7 @@ export default {
 }
 ```
 
-**修改后**:
+**修改后 (Vue3/Pinia - Options API)**:
 ```javascript
 import { useUserStore } from '@/store'
 
@@ -144,6 +249,33 @@ export default {
   }
 }
 ```
+
+**修改后 (Vue3/Pinia - Composition API - 推荐)**:
+```vue
+<script setup>
+import { useUserStore } from '@/store'
+
+const userStore = useUserStore()
+
+const handleLogin = async () => {
+  await userStore.login(formData)
+}
+</script>
+```
+
+---
+
+## Vuex vs Pinia 对比表
+
+| 特性 | Vuex | Pinia |
+|------|-------|--------|
+| State | `state: {}` | `state: () => ({})` |
+| Getters | `getters: {}` | `getters: {}` (用法相同) |
+| Actions | 需要解构 `{ commit, dispatch }` | 直接使用 `this` |
+| Mutations | 需要commit调用 | 不需要mutations，直接修改state |
+| 调用方式 | `this.$store.dispatch('module/action')` | `const store = useStore(); store.action()` |
+| 类型支持 | 需要额外配置 | 内置TypeScript支持 |
+| 模块化 | 需要modules配置 | 每个文件独立store |
 
 ---
 
@@ -214,18 +346,20 @@ pinia.use(piniaPluginPersistedstate)
 
 ## 修复时间
 
-**日期**: 2026-03-04  
-**版本**: v2.0.1  
+**第一次修复**: 2026-03-04 (修复页面引用)
+**第二次修复**: 2026-03-04 (修复Store转换)
+**版本**: v2.0.1
 **修复者**: AI助手
 
 ---
 
 ## 注意事项
 
-1. ✅ 所有Vuex引用已替换为Pinia
-2. ✅ 无linter错误
-3. ✅ 代码符合Vue3 + Pinia最佳实践
-4. ✅ 保持了原有的功能逻辑
+1. ✅ 所有Vuex store已转换为Pinia
+2. ✅ 所有页面引用已更新为Pinia
+3. ✅ 无linter错误
+4. ✅ 代码符合Vue3 + Pinia最佳实践
+5. ✅ 保持了原有的功能逻辑
 
 ---
 

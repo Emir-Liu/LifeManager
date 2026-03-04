@@ -1,90 +1,73 @@
 /**
- * 规划状态管理
+ * 规划状态管理 - Pinia版本
  */
+import { defineStore } from 'pinia'
 import { get, post, put } from '@/utils/request'
 
-const state = {
-  current: null,
-  detail: null,
-  loading: false
-}
+export const usePlansStore = defineStore('plans', {
+  state: () => ({
+    current: null,
+    detail: null,
+    loading: false
+  }),
 
-const mutations = {
-  SET_CURRENT(state, plan) {
-    state.current = plan
-  },
-  SET_DETAIL(state, detail) {
-    state.detail = detail
-  },
-  SET_LOADING(state, loading) {
-    state.loading = loading
-  }
-}
-
-const actions = {
-  // 生成规划
-  async generatePlan({ commit }, { goalId, availableHoursPerDay = 2 }) {
-    commit('SET_LOADING', true)
-    try {
-      const plan = await post('/plans/generate', {
-        goal_id: goalId,
-        available_hours_per_day: availableHoursPerDay
-      })
-      commit('SET_CURRENT', plan)
-      return plan
-    } catch (error) {
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
+  getters: {
+    planStages: (state) => state.current?.content?.stages || [],
+    totalTasks: (state) => state.current?.total_tasks || 0,
+    totalHours: (state) => state.current?.estimated_total_hours || 0
   },
 
-  // 获取规划详情
-  async fetchPlanDetail({ commit }, planId) {
-    commit('SET_LOADING', true)
-    try {
-      const plan = await get(`/plans/${planId}`)
-      commit('SET_DETAIL', plan)
-      return plan
-    } catch (error) {
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  },
+  actions: {
+    // 生成规划
+    async generatePlan({ goalId, availableHoursPerDay = 2 }) {
+      this.loading = true
+      try {
+        const plan = await post('/plans/generate', {
+          goal_id: goalId,
+          available_hours_per_day: availableHoursPerDay
+        })
+        this.current = plan
+        return plan
+      } catch (error) {
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
 
-  // 确认规划
-  async confirmPlan({ commit }, { planId, content = null }) {
-    try {
-      const result = await post(`/plans/${planId}/confirm`, content ? { content } : {})
-      return result
-    } catch (error) {
-      throw error
-    }
-  },
+    // 获取规划详情
+    async fetchPlanDetail(planId) {
+      this.loading = true
+      try {
+        const plan = await get(`/plans/${planId}`)
+        this.detail = plan
+        return plan
+      } catch (error) {
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
 
-  // 修改规划
-  async updatePlan({ commit }, { planId, content }) {
-    try {
-      const plan = await put(`/plans/${planId}`, { content })
-      commit('SET_CURRENT', plan)
-      return plan
-    } catch (error) {
-      throw error
+    // 确认规划
+    async confirmPlan({ planId, content = null }) {
+      try {
+        const result = await post(`/plans/${planId}/confirm`, content ? { content } : {})
+        return result
+      } catch (error) {
+        throw error
+      }
+    },
+
+    // 修改规划
+    async updatePlan({ planId, content }) {
+      try {
+        const plan = await put(`/plans/${planId}`, { content })
+        this.current = plan
+        return plan
+      } catch (error) {
+        throw error
+      }
     }
   }
-}
-
-const getters = {
-  planStages: state => state.current?.content?.stages || [],
-  totalTasks: state => state.current?.total_tasks || 0,
-  totalHours: state => state.current?.estimated_total_hours || 0
-}
-
-export default {
-  namespaced: true,
-  state,
-  mutations,
-  actions,
-  getters
-}
+})
