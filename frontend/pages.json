@@ -70,6 +70,24 @@
 			}
 		},
 		{
+			"path": "pages/timeline/calendar-view",
+			"style": {
+				"navigationBarTitleText": "日历视图"
+			}
+		},
+		{
+			"path": "pages/timeline/smart-assign",
+			"style": {
+				"navigationBarTitleText": "智能分配"
+			}
+		},
+		{
+			"path": "pages/settings/time-preferences",
+			"style": {
+				"navigationBarTitleText": "时间偏好"
+			}
+		},
+		{
 			"path": "pages/test/e2e-test",
 			"style": {
 				"navigationBarTitleText": "E2E测试"
@@ -108,8 +126,8 @@
 				"selectedIconPath": "static/tabbar/tasks-active.png"
 			},
 			{
-				"pagePath": "pages/timeline/timeline",
-				"text": "时间线",
+				"pagePath": "pages/timeline/calendar-view",
+				"text": "日程",
 				"iconPath": "static/tabbar/goals.png",
 				"selectedIconPath": "static/tabbar/goals-active.png"
 			}

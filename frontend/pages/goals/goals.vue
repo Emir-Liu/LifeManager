@@ -48,6 +48,37 @@
 
         <view class="goal-info">
           <text class="goal-desc">{{ goal.description }}</text>
+          <view class="goal-meta">
+            <text class="meta-item" v-if="goal.deadline">
+              📅 {{ formatDate(goal.deadline) }}
+            </text>
+            <text class="meta-item" v-if="goal.priority">
+              {{ getPriorityIcon(goal.priority) }} {{ getPriorityText(goal.priority) }}
+            </text>
+          </view>
+        </view>
+
+        <!-- 进度条 -->
+        <view class="progress-section">
+          <view class="progress-bar">
+            <view class="progress-fill" :style="{ width: goal.progress + '%' }"></view>
+          </view>
+          <text class="progress-text">{{ goal.progress || 0 }}%</text>
+        </view>
+
+        <!-- 对话规划按钮 -->
+        <view v-if="goal.status === 'active'" class="conversation-btn" @tap.stop="startGoalPlanning(goal)">
+          <text class="btn-icon">✨</text>
+          <text>对话规划</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- AI 智能规划按钮 -->
+    <view class="ai-planning-btn" @tap="startNewPlanning">
+      <text class="btn-icon">🤖</text>
+      <text>AI 智能规划</text>
+    </view>
         </view>
 
         <view class="goal-footer">
@@ -147,6 +178,50 @@ export default {
       uni.navigateTo({
         url: '/pages/goals/create'
       })
+    },
+
+    // 开始新的规划(对话)
+    startNewPlanning() {
+      uni.navigateTo({
+        url: '/pages/conversation/conversation?conversation_type=goal_planning'
+      })
+    },
+
+    // 对话规划
+    startGoalPlanning(goal) {
+      uni.navigateTo({
+        url: `/pages/conversation/conversation?conversation_type=task_adjustment&goal_id=${goal.id}`
+      })
+    },
+
+    // 格式化日期
+    formatDate(dateStr) {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    },
+
+    // 获取优先级图标
+    getPriorityIcon(priority) {
+      const icons = {
+        high: '🔴',
+        medium: '🟡',
+        low: '🟢'
+      }
+      return icons[priority] || ''
+    },
+
+    // 获取优先级文本
+    getPriorityText(priority) {
+      const texts = {
+        high: '高优先级',
+        medium: '中优先级',
+        low: '低优先级'
+      }
+      return texts[priority] || ''
     },
 
     handleDelete(goalId) {

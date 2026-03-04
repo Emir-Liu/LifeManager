@@ -1,0 +1,5 @@
+Requirement already satisfied: pytest in d:\miniforge3\lib\site-packages (7.4.4)
+Requirement already satisfied: iniconfig in d:\miniforge3\lib\site-packages (from pytest) (2.3.0)
+Requirement already satisfied: packaging in d:\miniforge3\lib\site-packages (from pytest) (23.2)
+Requirement already satisfied: pluggy<2.0,>=0.12 in d:\miniforge3\lib\site-packages (from pytest) (1.6.0)
+Requirement already satisfied: colorama in d:\miniforge3\lib\site-packages (from pytest) (0.4.6)
