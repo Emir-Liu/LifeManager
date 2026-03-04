@@ -62,6 +62,8 @@
 </template>
 
 <script>
+import { useUserStore } from '@/store'
+
 export default {
   data() {
     return {
@@ -147,7 +149,8 @@ export default {
 
       this.loading = true
       try {
-        const res = await this.$store.dispatch('user/register', {
+        const userStore = useUserStore()
+        const res = await userStore.register({
           username: this.formData.username,
           email: this.formData.email || undefined, // 邮箱为空时传undefined
           password: this.formData.password

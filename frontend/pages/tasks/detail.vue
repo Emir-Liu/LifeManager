@@ -62,7 +62,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex'
+import { useTasksStore } from '@/store'
 
 export default {
   data() {
@@ -85,11 +85,10 @@ export default {
     }
   },
   methods: {
-    ...mapActions('tasks', ['fetchTaskDetail', 'completeTask', 'uncompleteTask']),
-
     async loadTaskDetail(taskId) {
+      const tasksStore = useTasksStore()
       try {
-        this.task = await this.fetchTaskDetail(taskId)
+        this.task = await tasksStore.fetchTaskDetail(taskId)
       } catch (error) {
         uni.showToast({
           title: error.message || '加载失败',
@@ -100,17 +99,18 @@ export default {
 
     async toggleComplete() {
       if (this.loading) return
+      const tasksStore = useTasksStore()
 
       this.loading = true
       try {
         if (this.task.completed) {
-          await this.uncompleteTask(this.task.id)
+          await tasksStore.uncompleteTask(this.task.id)
           uni.showToast({
             title: '已取消完成',
             icon: 'success'
           })
         } else {
-          await this.completeTask(this.task.id)
+          await tasksStore.completeTask(this.task.id)
           uni.showToast({
             title: '任务已完成',
             icon: 'success'

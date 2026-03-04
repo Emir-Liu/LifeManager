@@ -78,7 +78,7 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex'
+import { usePlansStore, useGoalsStore } from '@/store'
 
 export default {
   data() {
@@ -89,7 +89,6 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('plans', ['planStages']),
     stages() {
       return this.plan?.content?.stages || []
     }
@@ -102,15 +101,14 @@ export default {
     }
   },
   methods: {
-    ...mapActions('plans', ['fetchPlanDetail', 'generatePlan', 'confirmPlan']),
-    ...mapActions('goals', ['fetchGoalDetail']),
-
     async loadPlan(planId) {
+      const plansStore = usePlansStore()
+      const goalsStore = useGoalsStore()
       this.loading = true
       try {
-        this.plan = await this.fetchPlanDetail(planId)
+        this.plan = await plansStore.fetchPlanDetail(planId)
         if (this.plan.goal_id) {
-          this.goal = await this.fetchGoalDetail(this.plan.goal_id)
+          this.goal = await goalsStore.fetchGoalDetail(this.plan.goal_id)
         }
       } catch (error) {
         uni.showToast({
@@ -125,11 +123,13 @@ export default {
     async generatePlan(goalId) {
       this.loading = true
       try {
+        const goalsStore = useGoalsStore()
+        const plansStore = usePlansStore()
         // 获取目标信息
-        this.goal = await this.fetchGoalDetail(goalId)
+        this.goal = await goalsStore.fetchGoalDetail(goalId)
 
         // 生成规划
-        this.plan = await this.$store.dispatch('plans/generatePlan', {
+        this.plan = await plansStore.generatePlan({
           goalId: goalId,
           availableHoursPerDay: 2
         })
@@ -150,9 +150,10 @@ export default {
 
     async handleConfirmPlan() {
       if (!this.plan) return
+      const plansStore = usePlansStore()
 
       try {
-        const result = await this.$store.dispatch('plans/confirmPlan', {
+        const result = await plansStore.confirmPlan({
           planId: this.plan.id
         })
 

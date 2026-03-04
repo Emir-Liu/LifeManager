@@ -15,7 +15,7 @@
 </template>
 
 <script>
-	import { mapGetters } from 'vuex'
+	import { useUserStore } from '@/store'
 
 	export default {
 		data() {
@@ -24,7 +24,10 @@
 			}
 		},
 		computed: {
-			...mapGetters('user', ['isLoggedIn'])
+			isLoggedIn() {
+				const userStore = useUserStore()
+				return userStore.isLoggedIn
+			}
 		},
 		onLoad() {
 			// 检查登录状态

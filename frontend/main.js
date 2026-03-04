@@ -13,15 +13,14 @@ app.$mount()
 
 // #ifdef VUE3
 import { createSSRApp } from 'vue'
-import { createStore } from 'vuex'
-import store from './store/index.js'
+import pinia from './store/index.js'
 
 export function createApp() {
   const app = createSSRApp(App)
-  app.use(store)
+  app.use(pinia)
   return {
     app,
-    store
+    pinia
   }
 }
 // #endif

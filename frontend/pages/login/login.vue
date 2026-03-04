@@ -44,6 +44,8 @@
 </template>
 
 <script>
+import { useUserStore } from '@/store'
+
 export default {
   data() {
     return {
@@ -74,7 +76,8 @@ export default {
 
       this.loading = true
       try {
-        const res = await this.$store.dispatch('user/login', this.formData)
+        const userStore = useUserStore()
+        const res = await userStore.login(this.formData)
         uni.showToast({
           title: '登录成功',
           icon: 'success'

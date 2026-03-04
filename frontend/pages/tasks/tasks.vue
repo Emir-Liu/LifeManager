@@ -67,7 +67,7 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex'
+import { useTasksStore } from '@/store'
 
 export default {
   data() {
@@ -77,9 +77,9 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('tasks', ['today', 'list']),
     taskList() {
-      return this.filter === 'today' ? this.today : this.list
+      const tasksStore = useTasksStore()
+      return this.filter === 'today' ? tasksStore.today : tasksStore.list
     },
     groupedTasks() {
       const groups = {}
@@ -117,16 +117,15 @@ export default {
     })
   },
   methods: {
-    ...mapActions('tasks', ['fetchTodayTasks', 'fetchTasks', 'completeTask']),
-    
     async loadTasks() {
       this.loading = true
+      const tasksStore = useTasksStore()
       try {
         if (this.filter === 'today') {
-          const result = await this.fetchTodayTasks()
+          const result = await tasksStore.fetchTodayTasks()
           console.log('今日任务加载完成:', result)
         } else {
-          await this.fetchTasks()
+          await tasksStore.fetchTasks()
         }
       } catch (error) {
         console.error('加载任务失败:', error)
@@ -147,8 +146,9 @@ export default {
     },
 
     async handleCompleteTask(taskId) {
+      const tasksStore = useTasksStore()
       try {
-        await this.completeTask(taskId)
+        await tasksStore.completeTask(taskId)
         uni.showToast({
           title: '任务已完成',
           icon: 'success'
