@@ -38,11 +38,6 @@ class Goal(Base):
         String(20), default="planning", index=True, comment="状态"
     )
 
-    # 目标层级（Phase 2 新增）
-    parent_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("goals.id", ondelete="SET NULL"), nullable=True, comment="父目标ID"
-    )
-
     # 优先级（Phase 2 新增）
     priority: Mapped[str] = mapped_column(
         String(20), nullable=False, default="medium", comment="优先级"
@@ -58,7 +53,6 @@ class Goal(Base):
     user: Mapped["User"] = relationship("User", back_populates="goals")
     plans: Mapped[list["Plan"]] = relationship("Plan", back_populates="goal", cascade="all, delete-orphan")
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="goal", cascade="all, delete-orphan")
-    parent_goal: Mapped[Optional["Goal"]] = relationship("Goal", remote_side=[id])
 
     def __repr__(self) -> str:
         return f"<Goal(id={self.id}, title={self.title}, status={self.status})>"

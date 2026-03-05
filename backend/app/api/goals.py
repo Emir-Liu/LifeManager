@@ -18,7 +18,7 @@ router = APIRouter(prefix="/goals", tags=["goals"])
 
 @router.get("")
 async def get_goals(
-    status_filter: Optional[str] = None,
+    status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -26,14 +26,14 @@ async def get_goals(
     获取当前用户的目标列表
     """
     try:
-        goals = goal_service.get_user_goals(db, current_user.id, status=status_filter)
+        goals = goal_service.get_user_goals(db, current_user.id, status=status)
 
         # 转换为响应格式
         data = [GoalResponse.model_validate(g).model_dump() for g in goals]
 
         return success_response(data=data).model_dump()
     except Exception as e:
-        return error_response(message=f"获取目标列表失败: {str(e)}").model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=f"获取目标列表失败: {str(e)}").model_dump()
 
 
 @router.post("")
@@ -63,7 +63,7 @@ async def create_goal(
     except ValueError as e:
         return error_response(code=ErrorCode.GOAL_TITLE_EMPTY, message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"创建目标失败: {str(e)}").model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=f"创建目标失败: {str(e)}").model_dump()
 
 
 @router.get("/statistics")
@@ -78,7 +78,7 @@ async def get_statistics(
         stats = goal_service.get_goal_statistics(db, current_user.id)
         return success_response(data=stats).model_dump()
     except Exception as e:
-        return error_response(message=f"获取统计信息失败: {str(e)}").model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=f"获取统计信息失败: {str(e)}").model_dump()
 
 
 @router.get("/{goal_id}")
@@ -113,7 +113,7 @@ async def get_goal(
             return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e)).model_dump()
         return error_response(message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"获取目标详情失败: {str(e)}").model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=f"获取目标详情失败: {str(e)}").model_dump()
 
 
 @router.delete("/{goal_id}")
@@ -136,4 +136,4 @@ async def delete_goal(
             return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e)).model_dump()
         return error_response(message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"删除目标失败: {str(e)}").model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=f"删除目标失败: {str(e)}").model_dump()

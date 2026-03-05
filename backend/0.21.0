@@ -1,6 +1,0 @@
-Requirement already satisfied: pytest-asyncio in d:\miniforge3\lib\site-packages (0.23.3)
-Requirement already satisfied: pytest>=7.0.0 in d:\miniforge3\lib\site-packages (from pytest-asyncio) (7.4.4)
-Requirement already satisfied: iniconfig in d:\miniforge3\lib\site-packages (from pytest>=7.0.0->pytest-asyncio) (2.3.0)
-Requirement already satisfied: packaging in d:\miniforge3\lib\site-packages (from pytest>=7.0.0->pytest-asyncio) (23.2)
-Requirement already satisfied: pluggy<2.0,>=0.12 in d:\miniforge3\lib\site-packages (from pytest>=7.0.0->pytest-asyncio) (1.6.0)
-Requirement already satisfied: colorama in d:\miniforge3\lib\site-packages (from pytest>=7.0.0->pytest-asyncio) (0.4.6)

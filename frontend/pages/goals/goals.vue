@@ -79,24 +79,11 @@
       <text class="btn-icon">🤖</text>
       <text>AI 智能规划</text>
     </view>
-        </view>
 
-        <view class="goal-footer">
-          <view class="goal-progress">
-            <text class="progress-label">进度: {{ goal.progress }}%</text>
-            <view class="progress-bar">
-              <view class="progress-fill" :style="{ width: goal.progress + '%' }"></view>
-            </view>
-          </view>
-          <text class="goal-date">{{ goal.deadline }}</text>
-        </view>
-      </view>
-
-      <!-- 空状态 -->
-      <view v-if="filteredGoals.length === 0" class="empty-state">
-        <text class="empty-text">暂无目标</text>
-        <text class="empty-hint">点击下方按钮创建第一个目标</text>
-      </view>
+    <!-- 空状态 -->
+    <view v-if="filteredGoals.length === 0" class="empty-state">
+      <text class="empty-text">暂无目标</text>
+      <text class="empty-hint">点击下方按钮创建第一个目标</text>
     </view>
 
     <!-- 创建按钮 -->
