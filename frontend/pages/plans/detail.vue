@@ -163,7 +163,7 @@ export default {
         })
 
         // 跳转到任务列表
-        uni.switchTab({
+        uni.reLaunch({
           url: '/pages/tasks/tasks'
         })
       } catch (error) {

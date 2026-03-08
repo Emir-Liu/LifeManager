@@ -3,13 +3,16 @@ Conversation API
 对话相关 API 端点 - 同步版本
 """
 from typing import List
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
 from app.core.response import success_response, error_response
+from app.core.logger import logger
 from app.models.conversation import ConversationAction
 from app.models.user import User
 from app.schemas.conversation import (
@@ -24,6 +27,7 @@ from app.schemas.conversation import (
     MessageResponse,
 )
 from app.services.conversation_service_sync import ConversationServiceSync
+from app.services.chat_service import chat_service
 from app.utils.model_utils import (
     action_to_dict,
     conversation_to_dict,
@@ -203,5 +207,124 @@ def chat(
     db: Session = Depends(get_db),
 ):
     """AI 对话 - 发送消息并获取 AI 回复"""
-    # 由于AI服务需要异步，这里暂时返回错误
-    return error_response(code=501, message="AI chat功能暂未实现（需要异步支持）")
+    try:
+        service = ConversationServiceSync(db)
+
+        # 1. 保存用户消息
+        user_message_data = MessageCreate(
+            role="user",
+            message_type="text",
+            content=data.message
+        )
+        user_message = service.add_message(conversation_id, current_user.id, user_message_data)
+
+        if not user_message:
+            return error_response(code=404, message="Conversation not found")
+
+        # 2. 获取对话历史
+        messages = service.get_conversation_messages(conversation_id, current_user.id, 0, 10)
+
+        # 3. 调用 AI 获取回复
+        history = [
+            {
+                "role": msg.role,
+                "content": msg.content
+            }
+            for msg in messages[:-1]  # 排除刚刚添加的用户消息
+        ]
+
+        ai_response = chat_service.chat(data.message, history)
+
+        # 4. 保存 AI 回复
+        ai_message_data = MessageCreate(
+            role="assistant",
+            message_type="text",
+            content=ai_response
+        )
+        ai_message = service.add_message(conversation_id, current_user.id, ai_message_data)
+
+        if not ai_message:
+            logger.warning(f"保存 AI 回复失败，但已返回给用户")
+
+        return success_response(data={
+            "user_message": message_to_dict(user_message),
+            "ai_message": message_to_dict(ai_message) if ai_message else None
+        })
+
+    except Exception as e:
+        logger.error(f"AI chat 错误: {e}", exc_info=True)
+        return error_response(code=500, message=f"AI 对话失败: {str(e)}")
+
+
+@router.post("/{conversation_id}/chat/stream")
+async def chat_stream(
+    conversation_id: int,
+    data: ChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """流式 AI 对话 - 发送消息并流式获取 AI 回复"""
+    try:
+        service = ConversationServiceSync(db)
+
+        # 1. 保存用户消息
+        user_message_data = MessageCreate(
+            role="user",
+            message_type="text",
+            content=data.message
+        )
+        user_message = service.add_message(conversation_id, current_user.id, user_message_data)
+
+        if not user_message:
+            return error_response(code=404, message="Conversation not found")
+
+        # 2. 获取对话历史
+        messages = service.get_conversation_messages(conversation_id, current_user.id, 0, 10)
+        history = [
+            {
+                "role": msg.role,
+                "content": msg.content
+            }
+            for msg in messages[:-1]  # 排除刚刚添加的用户消息
+        ]
+
+        # 3. 生成流式响应
+        async def generate_stream():
+            try:
+                # 先返回用户消息
+                yield f"event: user_message\ndata: {json.dumps(message_to_dict(user_message))}\n\n"
+
+                # 流式输出 AI 回复
+                ai_response = ""
+                async for chunk in chat_service.chat_stream(data.message, history):
+                    ai_response += chunk
+                    yield f"event: ai_chunk\ndata: {json.dumps({'content': chunk})}\n\n"
+
+                # 保存 AI 回复
+                ai_message_data = MessageCreate(
+                    role="assistant",
+                    message_type="text",
+                    content=ai_response
+                )
+                ai_message = service.add_message(conversation_id, current_user.id, ai_message_data)
+
+                # 返回完整消息
+                yield f"event: ai_complete\ndata: {json.dumps(message_to_dict(ai_message))}\n\n"
+
+            except Exception as e:
+                logger.error(f"流式输出错误: {e}", exc_info=True)
+                yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+
+        return StreamingResponse(
+            generate_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"AI chat stream 错误: {e}", exc_info=True)
+        return error_response(code=500, message=f"AI 对话失败: {str(e)}")

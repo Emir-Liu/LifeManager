@@ -63,13 +63,20 @@
     <view class="fab" @click="addTask">
       <text class="fab-icon">+</text>
     </view>
+
+    <!-- 自定义底部导航 -->
+    <CustomTabbar />
   </view>
 </template>
 
 <script>
 import { useTasksStore } from '@/store'
+import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 
 export default {
+  components: {
+    CustomTabbar
+  },
   data() {
     return {
       filter: 'today', // today | all
@@ -201,6 +208,7 @@ export default {
   flex-direction: column;
   height: 100vh;
   background: #f9fafb;
+  padding-bottom: 100rpx;
 }
 
 .header {

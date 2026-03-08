@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计分析 - 多周期</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #f5f5f5;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .nav-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .content {
+            padding: 20px;
+            overflow-y: auto;
+            height: calc(100% - 120px);
+        }
+        
+        .period-tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .period-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 14px;
+            color: #666;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .period-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .heatmap-container {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .heatmap-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .heatmap-legend {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-bottom: 10px;
+            font-size: 11px;
+            color: #999;
+        }
+        
+        .heatmap-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .heatmap-legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        
+        .heatmap-day-label {
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            padding: 4px 0;
+        }
+        
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+        }
+        
+        .heatmap-cell.level-0 { background: #e8e8e8; color: #999; }
+        .heatmap-cell.level-1 { background: #c5e1f5; color: #666; }
+        .heatmap-cell.level-2 { background: #667eea; }
+        .heatmap-cell.level-3 { background: #5a6fd8; }
+        .heatmap-cell.level-4 { background: #4e62c7; }
+        
+        .category-stats {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .category-item {
+            margin-bottom: 15px;
+        }
+        
+        .category-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        
+        .category-name {
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .category-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .category-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .category-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .trend-chart {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .chart-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 120px;
+            margin-top: 15px;
+        }
+        
+        .chart-bar {
+            width: 40px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px 6px 0 0;
+            position: relative;
+            transition: height 0.5s ease;
+        }
+        
+        .chart-bar::after {
+            content: attr(data-value);
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .chart-label {
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            margin-top: 6px;
+        }
+        
+        .ai-insight-card {
+            background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
+            border-radius: 16px;
+            padding: 15px;
+            border: 1px solid rgba(102,126,234,0.2);
+        }
+        
+        .ai-insight-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .ai-insight-icon {
+            font-size: 20px;
+        }
+        
+        .ai-insight-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .ai-insight-content {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .ai-insight-list {
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+        
+        .ai-insight-list li {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+        
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-around;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .nav-item.active {
+            color: #667eea;
+        }
+        
+        .nav-item i {
+            font-size: 20px;
+        }
+        
+        .nav-item.ai-center i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-item.ai-center span {
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>📶 📡 🔋</span>
+        </div>
+        
+        <div class="nav-bar">
+            <div class="nav-title">统计分析</div>
+        </div>
+        
+        <div class="content">
+            <!-- 周期切换 -->
+            <div class="period-tabs">
+                <div class="period-tab" onclick="switchPeriod('day')">日</div>
+                <div class="period-tab active" onclick="switchPeriod('week')">周</div>
+                <div class="period-tab" onclick="switchPeriod('month')">月</div>
+                <div class="period-tab" onclick="switchPeriod('year')">年</div>
+            </div>
+            
+            <!-- 汇总卡片 -->
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="summary-value">42h</div>
+                    <div class="summary-label">总时长</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">18</div>
+                    <div class="summary-label">完成任务</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">85%</div>
+                    <div class="summary-label">完成率</div>
+                </div>
+            </div>
+            
+            <!-- 时间分布热力图 -->
+            <div class="section-title">
+                <span>📊</span>
+                <span>时间分布热力图</span>
+            </div>
+            
+            <div class="heatmap-container">
+                <div class="heatmap-title">本周每日任务时长</div>
+                <div class="heatmap-legend">
+                    <div class="heatmap-legend-item">
+                        <div class="heatmap-legend-box" style="background: #e8e8e8;"></div>
+                        <span>0h</span>
+                    </div>
+                    <div class="heatmap-legend-item">
+                        <div class="heatmap-legend-box" style="background: #c5e1f5;"></div>
+                        <span>2-4h</span>
+                    </div>
+                    <div class="heatmap-legend-item">
+                        <div class="heatmap-legend-box" style="background: #667eea;"></div>
+                        <span>4-6h</span>
+                    </div>
+                    <div class="heatmap-legend-item">
+                        <div class="heatmap-legend-box" style="background: #5a6fd8;"></div>
+                        <span>6-8h</span>
+                    </div>
+                    <div class="heatmap-legend-item">
+                        <div class="heatmap-legend-box" style="background: #4e62c7;"></div>
+                        <span>8h+</span>
+                    </div>
+                </div>
+                <div class="heatmap-grid">
+                    <div class="heatmap-day-label">周一</div>
+                    <div class="heatmap-day-label">周二</div>
+                    <div class="heatmap-day-label">周三</div>
+                    <div class="heatmap-day-label">周四</div>
+                    <div class="heatmap-day-label">周五</div>
+                    <div class="heatmap-day-label">周六</div>
+                    <div class="heatmap-day-label">周日</div>
+                    
+                    <div class="heatmap-cell level-3" data-hours="6.5">6.5</div>
+                    <div class="heatmap-cell level-4" data-hours="8.2">8.2</div>
+                    <div class="heatmap-cell level-2" data-hours="5.0">5.0</div>
+                    <div class="heatmap-cell level-3" data-hours="7.1">7.1</div>
+                    <div class="heatmap-cell level-4" data-hours="8.5">8.5</div>
+                    <div class="heatmap-cell level-1" data-hours="3.8">3.8</div>
+                    <div class="heatmap-cell level-0" data-hours="2.5">2.5</div>
+                </div>
+            </div>
+            
+            <!-- 分类统计 -->
+            <div class="section-title">
+                <span>📁</span>
+                <span>分类统计</span>
+            </div>
+            
+            <div class="category-stats">
+                <div class="category-item">
+                    <div class="category-header">
+                        <div class="category-name">
+                            <span>💼</span>
+                            <span>工作</span>
+                        </div>
+                        <div class="category-value">28h</div>
+                    </div>
+                    <div class="category-bar">
+                        <div class="category-fill" style="width: 70%; background: linear-gradient(90deg, #667eea, #764ba2);"></div>
+                    </div>
+                </div>
+                
+                <div class="category-item">
+                    <div class="category-header">
+                        <div class="category-name">
+                            <span>📚</span>
+                            <span>学习</span>
+                        </div>
+                        <div class="category-value">8h</div>
+                    </div>
+                    <div class="category-bar">
+                        <div class="category-fill" style="width: 20%; background: linear-gradient(90deg, #11998e, #38ef7d);"></div>
+                    </div>
+                </div>
+                
+                <div class="category-item">
+                    <div class="category-header">
+                        <div class="category-name">
+                            <span>🏃</span>
+                            <span>健康</span>
+                        </div>
+                        <div class="category-value">4h</div>
+                    </div>
+                    <div class="category-bar">
+                        <div class="category-fill" style="width: 10%; background: linear-gradient(90deg, #f093fb, #f5576c);"></div>
+                    </div>
+                </div>
+                
+                <div class="category-item">
+                    <div class="category-header">
+                        <div class="category-name">
+                            <span>🎮</span>
+                            <span>娱乐</span>
+                        </div>
+                        <div class="category-value">2h</div>
+                    </div>
+                    <div class="category-bar">
+                        <div class="category-fill" style="width: 5%; background: linear-gradient(90deg, #ffecd2, #fcb69f);"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 趋势分析 -->
+            <div class="section-title">
+                <span>📈</span>
+                <span>任务完成趋势</span>
+            </div>
+            
+            <div class="trend-chart">
+                <div class="chart-container">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="chart-bar" style="height: 60px;" data-value="12"></div>
+                        <div class="chart-label">周一</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="chart-bar" style="height: 80px;" data-value="16"></div>
+                        <div class="chart-label">周二</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="chart-bar" style="height: 50px;" data-value="10"></div>
+                        <div class="chart-label">周三</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="chart-bar" style="height: 70px;" data-value="14"></div>
+                        <div class="chart-label">周四</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="chart-bar" style="height: 90px;" data-value="18"></div>
+                        <div class="chart-label">周五</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="chart-bar" style="height: 40px;" data-value="8"></div>
+                        <div class="chart-label">周六</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="chart-bar" style="height: 30px;" data-value="6"></div>
+                        <div class="chart-label">周日</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI分析洞察 -->
+            <div class="ai-insight-card">
+                <div class="ai-insight-header">
+                    <div class="ai-insight-icon">🤖</div>
+                    <div class="ai-insight-title">AI分析洞察</div>
+                </div>
+                <div class="ai-insight-content">
+                    本周工作效率表现良好,工作日平均每天完成14个任务。建议:
+                    <ul class="ai-insight-list">
+                        <li>周五效率最高,可安排重要任务</li>
+                        <li>周日任务量偏低,可适当分配任务</li>
+                        <li>工作占比70%,建议增加学习时间</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <div class="nav-item" onclick="navigateTo('goals-view.html')">
+                <i>🎯</i>
+                <span>目标</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('tasks-view.html')">
+                <i>📋</i>
+                <span>任务</span>
+            </div>
+            <div class="nav-item ai-center" onclick="navigateTo('ai-assistant-enhanced.html')">
+                <i>🤖</i>
+                <span>AI助手</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('timeline-view.html')">
+                <i>📅</i>
+                <span>日程</span>
+            </div>
+            <div class="nav-item active">
+                <i>📊</i>
+                <span>统计</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function switchPeriod(period) {
+            const tabs = document.querySelectorAll('.period-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            
+            // 模拟数据更新
+            const summaryValues = document.querySelectorAll('.summary-value');
+            
+            if (period === 'day') {
+                summaryValues[0].textContent = '8.5h';
+                summaryValues[1].textContent = '5';
+                summaryValues[2].textContent = '100%';
+            } else if (period === 'week') {
+                summaryValues[0].textContent = '42h';
+                summaryValues[1].textContent = '18';
+                summaryValues[2].textContent = '85%';
+            } else if (period === 'month') {
+                summaryValues[0].textContent = '168h';
+                summaryValues[1].textContent = '75';
+                summaryValues[2].textContent = '88%';
+            } else if (period === 'year') {
+                summaryValues[0].textContent = '2016h';
+                summaryValues[1].textContent = '896';
+                summaryValues[2].textContent = '90%';
+            }
+        }
+        
+        // 热力图点击事件
+        document.querySelectorAll('.heatmap-cell').forEach(cell => {
+            cell.addEventListener('click', function() {
+                const hours = this.getAttribute('data-hours');
+                alert('该天完成任务时长: ' + hours + '小时');
+            });
+        });
+        
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+    </script>
+</body>
+</html>

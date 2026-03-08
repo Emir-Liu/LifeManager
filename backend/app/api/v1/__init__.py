@@ -4,7 +4,7 @@ Phase 2 新增的 API 端点
 """
 from fastapi import APIRouter
 
-from app.api.v1 import conversations, events, timeline, time_preferences
+from app.api.v1 import conversations, events, timeline, time_preferences, admin
 
 api_router = APIRouter()
 
@@ -13,3 +13,4 @@ api_router.include_router(conversations.router, tags=["Conversations"])
 api_router.include_router(events.router, tags=["Events"])
 api_router.include_router(time_preferences.router, tags=["Time Preferences"])
 api_router.include_router(timeline.router, tags=["Timeline"])
+api_router.include_router(admin.admin_router, tags=["Admin"])

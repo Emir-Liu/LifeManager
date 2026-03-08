@@ -19,7 +19,6 @@
       :scroll-top="scrollTop"
       scroll-y
       :scroll-into-view="scrollToView"
-      @scrolltolower="loadMoreMessages"
     >
       <!-- 用户消息 -->
       <view
@@ -27,12 +26,23 @@
         :key="message.id"
         :id="`msg-${message.id}`"
         class="message-item"
-        :class="message.role"
+        :class="[message.role, { streaming: message.streaming, pending: message.pending }]"
       >
         <view class="message-content">
-          <!-- 文本消息 -->
-          <view v-if="message.message_type === 'text'" class="text-message">
+          <!-- 文本消息 - 用户 -->
+          <view v-if="message.message_type === 'text' && message.role === 'user'" class="text-message">
             <text>{{ message.content }}</text>
+          </view>
+
+          <!-- 文本消息 - AI (使用 Markdown 渲染) -->
+          <view v-else-if="message.message_type === 'text' && message.role === 'assistant'">
+            <MarkdownRenderer
+              v-if="message.useMarkdown"
+              :content="message.content"
+            />
+            <view v-else class="text-message">
+              <text>{{ message.content }}</text>
+            </view>
           </view>
 
           <!-- 操作卡片 -->
@@ -84,7 +94,9 @@
         placeholder="输入你的问题..."
         :auto-height="true"
         :maxlength="500"
-        @confirm="sendMessage"
+        :confirm-hold="true"
+        @confirm="handleConfirm"
+        :show-confirm-bar="false"
       />
       <button class="send-btn" :disabled="!inputMessage || isSending" @click="sendMessage">
         <text v-if="!isSending">发送</text>
@@ -93,8 +105,8 @@
     </view>
 
     <!-- 菜单弹窗 -->
-    <uni-popup ref="menuPopup" type="bottom" @maskClick="showMenu = false">
-      <view class="menu-popup">
+    <view v-if="showMenu" class="menu-overlay" @click="showMenu = false">
+      <view class="menu-popup" @click.stop>
         <view class="menu-item" @click="clearHistory">
           <text>清空对话历史</text>
         </view>
@@ -102,7 +114,10 @@
           <text>取消</text>
         </view>
       </view>
-    </uni-popup>
+    </view>
+
+    <!-- 自定义底部导航 -->
+    <CustomTabbar />
   </view>
 </template>
 
@@ -111,8 +126,14 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useConversationStore } from '@/store/conversation.js'
 import conversationApi from '@/api/conversation.js'
+import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
+import MarkdownRenderer from '@/components/MarkdownRenderer/MarkdownRenderer.vue'
 
 export default {
+  components: {
+    CustomTabbar,
+    MarkdownRenderer
+  },
   setup() {
     const conversationStore = useConversationStore()
 
@@ -137,9 +158,19 @@ export default {
         await conversationStore.fetchConversationDetail(options.conversation_id)
         await conversationStore.fetchMessages(options.conversation_id)
       } else {
-        // 创建新对话
-        const type = options.conversation_type || 'general_chat'
-        await createConversation(type)
+        // 如果没有 conversation_id，尝试获取用户的最新对话
+        const data = await conversationStore.fetchConversations({ limit: 1 })
+        const conversations = data?.items || []
+        if (conversations.length > 0) {
+          // 使用最新的对话
+          conversationId.value = conversations[0].id
+          await conversationStore.fetchConversationDetail(conversationId.value)
+          await conversationStore.fetchMessages(conversationId.value)
+        } else {
+          // 没有对话，创建新对话
+          const type = options.conversation_type || 'general_chat'
+          await createConversation(type)
+        }
       }
     })
 
@@ -150,13 +181,20 @@ export default {
           conversation_type: type,
           title: getConversationTitle(type)
         })
-        conversationId.value = res.data?.id
+        // res 已经是解析后的对话对象（request.js返回data.data）
+        if (res && res.id) {
+          conversationId.value = res.id
+        } else {
+          console.error('创建对话返回数据:', res)
+          throw new Error('创建对话返回数据格式错误')
+        }
       } catch (error) {
         console.error('创建对话失败:', error)
         uni.showToast({
           title: '创建对话失败',
           icon: 'none'
         })
+        throw error
       }
     }
 
@@ -175,11 +213,35 @@ export default {
     const sendMessage = async () => {
       if (!inputMessage.value || isSending.value) return
 
-      const message = inputMessage.value
+      // 如果没有对话ID，先创建对话
+      if (!conversationId.value) {
+        try {
+          await createConversation('general_chat')
+        } catch (error) {
+          console.error('创建对话失败:', error)
+          return
+        }
+      }
+
+      const message = inputMessage.value.trim()
+      if (!message) return
+
       inputMessage.value = ''
 
+      // 立即显示用户消息
+      conversationStore.appendMessage({
+        id: Date.now(),
+        conversation_id: conversationId.value,
+        role: 'user',
+        message_type: 'text',
+        content: message,
+        created_at: new Date().toISOString(),
+        pending: true  // 标记为待同步
+      })
+
       try {
-        await conversationStore.chatWithAI(conversationId.value, message)
+        // 使用流式接口
+        await conversationStore.chatWithAIStream(conversationId.value, message)
         await nextTick()
         scrollToBottom()
       } catch (error) {
@@ -189,6 +251,13 @@ export default {
           icon: 'none'
         })
       }
+    }
+
+    // 处理键盘确认事件
+    const handleConfirm = (e) => {
+      // 在 uni-app 中，textarea 的 confirm 事件在按下键盘确认键时触发
+      // PC 端通常对应 Enter 键
+      sendMessage()
     }
 
     // 确认操作
@@ -289,6 +358,7 @@ export default {
       showMenu,
       conversationTitle,
       sendMessage,
+      handleConfirm,
       confirmAction,
       getActions,
       getActionLabel,
@@ -306,6 +376,7 @@ export default {
   display: flex;
   flex-direction: column;
   background-color: #f5f5f5;
+  padding-bottom: 100rpx;
 }
 
 .header {
@@ -462,6 +533,48 @@ export default {
   }
 }
 
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+// 流式输出时的光标效果
+.message-item.assistant {
+  &.streaming {
+    .message-content {
+      .text-message::after {
+        content: '';
+        display: inline-block;
+        width: 2px;
+        height: 16px;
+        background-color: #6366f1;
+        animation: blink 1s infinite;
+        vertical-align: middle;
+        margin-left: 2px;
+      }
+    }
+  }
+}
+
+// 用户消息发送中状态
+.message-item.user {
+  &.pending {
+    opacity: 0.7;
+
+    .message-content::after {
+      content: '发送中...';
+      display: block;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 4px;
+    }
+  }
+}
+
 .input-area {
   display: flex;
   gap: 8px;
@@ -493,10 +606,23 @@ export default {
   }
 }
 
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 999;
+}
+
 .menu-popup {
   background-color: white;
   border-radius: 16px 16px 0 0;
   overflow: hidden;
+  width: 100%;
 }
 
 .menu-item {

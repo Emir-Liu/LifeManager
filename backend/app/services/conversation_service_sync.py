@@ -126,6 +126,7 @@ class ConversationServiceSync:
                 select(ConversationMessage)
                 .where(ConversationMessage.conversation_id == conversation_id)
                 .order_by(ConversationMessage.sequence.desc())
+                .limit(1)
             )
             .scalar_one_or_none()
         )

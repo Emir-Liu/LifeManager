@@ -319,34 +319,94 @@ GET /api/conversations/{conversation_id}/messages?page=1&page_size=50
 
 ---
 
-#### 4.2.3 获取 AI 回复（流式）
+#### 4.2.3 AI 对话（非流式）
 
 ```http
-POST /api/conversations/{conversation_id}/messages/chat
+POST /api/conversations/{conversation_id}/chat
 ```
 
 **请求体**：
 
 ```json
 {
-  "content": "帮我规划一下学习路径",
-  "stream": true
+  "message": "帮我规划一下学习路径"
+}
+```
+
+**响应**：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "user_message": {
+      "id": 1,
+      "conversation_id": 1,
+      "role": "user",
+      "message_type": "text",
+      "content": "帮我规划一下学习路径",
+      "created_at": "2026-03-06T10:05:00Z"
+    },
+    "ai_message": {
+      "id": 2,
+      "conversation_id": 1,
+      "role": "assistant",
+      "message_type": "text",
+      "content": "好的！让我帮你规划一下学习路径...",
+      "created_at": "2026-03-06T10:05:05Z"
+    }
+  }
+}
+```
+
+---
+
+#### 4.2.4 AI 对话（流式）
+
+```http
+POST /api/conversations/{conversation_id}/chat/stream
+```
+
+**请求体**：
+
+```json
+{
+  "message": "帮我规划一下学习路径"
 }
 ```
 
 **响应** (Server-Sent Events):
 
 ```
-data: {"id": 2, "sequence": 2, "content": "好的，让我", "done": false}
+event: user_message
+data: {"id": 1, "conversation_id": 1, "role": "user", "message_type": "text", "content": "帮我规划一下学习路径", "created_at": "2026-03-06T10:05:00Z"}
 
-data: {"id": 2, "sequence": 2, "content": "为你规划...", "done": false}
+event: ai_chunk
+data: {"content": "好的"}
 
-data: {"id": 2, "sequence": 2, "content": "学习路径", "done": true}
+event: ai_chunk
+data: {"content": "！让我"}
+
+event: ai_chunk
+data: {"content": "帮你规划"}
+
+event: ai_chunk
+data: {"content": "一下"}
+
+event: ai_complete
+data: {"id": 2, "conversation_id": 1, "role": "assistant", "message_type": "text", "content": "好的！让我帮你规划一下学习路径...", "created_at": "2026-03-06T10:05:05Z"}
 ```
+
+**事件类型**：
+- `user_message` - 用户消息（后端保存后返回）
+- `ai_chunk` - AI 回复片段（流式输出）
+- `ai_complete` - AI 回复完成（完整消息）
+- `error` - 错误信息
 
 ---
 
-#### 4.2.4 提供用户反馈
+#### 4.2.5 提供用户反馈
 
 ```http
 POST /api/conversation-messages/{message_id}/feedback
@@ -795,6 +855,244 @@ GET /api/time-stats?start_date=2026-03-01&end_date=2026-03-31
       }
     ],
     "completion_rate": 0.85
+  }
+}
+```
+
+---
+
+## 7. 管理员 API
+
+### 7.1 权限说明
+
+所有管理员 API 需要管理员权限（`role = admin`），普通用户访问将返回 403 错误。
+
+---
+
+### 7.2 对话管理
+
+#### 7.2.1 获取所有对话列表
+
+```http
+GET /api/admin/conversations
+```
+
+**查询参数**：
+- `skip` (可选): 跳过记录数，默认 0
+- `limit` (可选): 每页记录数，默认 20，最大 100
+- `user_id` (可选): 按用户 ID 筛选
+- `conversation_type` (可选): 按对话类型筛选
+- `status` (可选): 按状态筛选
+- `search` (可选): 搜索对话标题
+- `start_date` (可选): 开始日期
+- `end_date` (可选): 结束日期
+
+**响应**：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "total": 100,
+    "items": [
+      {
+        "id": 1,
+        "user_id": 1,
+        "title": "学习 Python 目标规划",
+        "conversation_type": "goal_planning",
+        "status": "active",
+        "message_count": 5,
+        "created_at": "2026-03-02T10:00:00Z"
+      }
+    ],
+    "skip": 0,
+    "limit": 20
+  }
+}
+```
+
+---
+
+#### 7.2.2 获取对话详情
+
+```http
+GET /api/admin/conversations/{conversation_id}
+```
+
+**响应**：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "title": "学习 Python 目标规划",
+    "conversation_type": "goal_planning",
+    "status": "active",
+    "related_goal_id": null,
+    "related_plan_id": null,
+    "context_summary": "用户希望学习Python...",
+    "message_count": 5,
+    "created_at": "2026-03-02T10:00:00Z",
+    "updated_at": "2026-03-02T11:00:00Z"
+  }
+}
+```
+
+---
+
+#### 7.2.3 获取对话消息列表
+
+```http
+GET /api/admin/conversations/{conversation_id}/messages
+```
+
+**查询参数**：
+- `skip` (可选): 跳过记录数，默认 0
+- `limit` (可选): 每页记录数，默认 100，最大 500
+- `role` (可选): 按角色筛选（user/assistant）
+
+**响应**：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "total": 10,
+    "items": [
+      {
+        "id": 1,
+        "conversation_id": 1,
+        "sequence": 1,
+        "role": "user",
+        "message_type": "text",
+        "content": "我想在3个月内学会Python",
+        "created_at": "2026-03-02T10:05:00Z"
+      },
+      {
+        "id": 2,
+        "conversation_id": 1,
+        "sequence": 2,
+        "role": "assistant",
+        "message_type": "text",
+        "content": "很好的目标！我建议...",
+        "model_used": "gpt-4",
+        "tokens_used": 150,
+        "created_at": "2026-03-02T10:05:05Z"
+      }
+    ],
+    "skip": 0,
+    "limit": 100
+  }
+}
+```
+
+---
+
+#### 7.2.4 删除对话
+
+```http
+DELETE /api/admin/conversations/{conversation_id}
+```
+
+**响应**：
+
+```json
+{
+  "code": 0,
+  "message": "删除成功",
+  "data": null
+}
+```
+
+**注意**：删除对话会级联删除所有关联的消息和操作记录。
+
+---
+
+#### 7.2.5 获取用户的所有对话
+
+```http
+GET /api/admin/conversations/users/{user_id}/conversations
+```
+
+**查询参数**：
+- `skip` (可选): 跳过记录数，默认 0
+- `limit` (可选): 每页记录数，默认 20，最大 100
+
+---
+
+#### 7.2.6 搜索消息内容
+
+```http
+GET /api/admin/conversations/messages/search?keyword=Python
+```
+
+**查询参数**：
+- `keyword` (必填): 搜索关键词
+- `skip` (可选): 跳过记录数，默认 0
+- `limit` (可选): 每页记录数，默认 20，最大 100
+- `user_id` (可选): 按用户 ID 筛选
+
+**响应**：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "total": 50,
+    "items": [
+      {
+        "id": 1,
+        "conversation_id": 1,
+        "sequence": 1,
+        "role": "user",
+        "message_type": "text",
+        "content": "我想在3个月内学会Python",
+        "created_at": "2026-03-02T10:05:00Z"
+      }
+    ],
+    "skip": 0,
+    "limit": 20,
+    "keyword": "Python"
+  }
+}
+```
+
+---
+
+#### 7.2.7 获取对话统计信息
+
+```http
+GET /api/admin/conversations/stats/overview
+```
+
+**响应**：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "total_conversations": 100,
+    "total_messages": 1000,
+    "total_users": 50,
+    "active_conversations": 60,
+    "conversations_by_type": {
+      "goal_planning": 30,
+      "schedule_planning": 25,
+      "task_adjustment": 20,
+      "general_chat": 25
+    },
+    "conversations_by_status": {
+      "active": 60,
+      "completed": 35,
+      "cancelled": 5
+    }
   }
 }
 ```

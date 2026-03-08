@@ -56,7 +56,7 @@
 
     <view class="footer">
       <text class="footer-text">已有账号？</text>
-      <text class="link" @tap="handleLogin">立即登录</text>
+      <view class="link" @tap="handleLogin">立即登录</view>
     </view>
   </view>
 </template>
@@ -161,8 +161,8 @@ export default {
           duration: 1500
         })
         setTimeout(() => {
-          uni.switchTab({
-            url: '/pages/goals/goals'
+          uni.reLaunch({
+            url: '/pages/conversation/conversation'
           })
         }, 1500)
       } catch (error) {
@@ -210,7 +210,19 @@ export default {
     },
 
     handleLogin() {
-      uni.navigateBack()
+      console.log('点击返回登录')
+      uni.navigateBack({
+        fail: (err) => {
+          console.error('返回失败:', err)
+          // 如果没有历史记录，则跳转到登录页
+          uni.redirectTo({
+            url: '/pages/login/login',
+            fail: (err2) => {
+              console.error('跳转登录页失败:', err2)
+            }
+          })
+        }
+      })
     }
   }
 }

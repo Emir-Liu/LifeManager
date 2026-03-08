@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI助手 - 增强版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #f5f5f5;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .nav-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .content {
+            padding: 15px;
+            overflow-y: auto;
+            height: calc(100% - 180px);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .quick-action {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .quick-action:hover {
+            transform: translateY(-2px);
+        }
+        
+        .quick-action-icon {
+            font-size: 24px;
+        }
+        
+        .quick-action-text {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            display: flex;
+            gap: 10px;
+            max-width: 100%;
+        }
+        
+        .message.user {
+            flex-direction: row-reverse;
+        }
+        
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .avatar.ai {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .avatar.user {
+            background: #e0e0e0;
+        }
+        
+        .message-content {
+            flex: 1;
+            max-width: 75%;
+        }
+        
+        .message-bubble {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 15px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        .card-response {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-top: 5px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .card-action-btn {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .timeline-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .timeline-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .timeline-time {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            width: 80px;
+            flex-shrink: 0;
+        }
+        
+        .timeline-task {
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 3px;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #999;
+        }
+        
+        .subtask-list-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+        }
+        
+        .subtask-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .subtask-checkbox {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #667eea;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .subtask-checkbox.checked {
+            background: #667eea;
+        }
+        
+        .subtask-title {
+            font-size: 13px;
+            color: #333;
+            flex: 1;
+        }
+        
+        .subtask-title.completed {
+            text-decoration: line-through;
+            color: #999;
+        }
+        
+        .input-area {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .suggestion-chips {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+        }
+        
+        .suggestion-chip {
+            padding: 6px 14px;
+            background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
+            border: 1px solid rgba(102,126,234,0.3);
+            border-radius: 16px;
+            font-size: 12px;
+            color: #667eea;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .suggestion-chip:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .input-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .input-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .input-field {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .input-field:focus {
+            border-color: #667eea;
+        }
+        
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-around;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .nav-item.active {
+            color: #667eea;
+        }
+        
+        .nav-item i {
+            font-size: 20px;
+        }
+        
+        .nav-item.ai-center i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-item.ai-center span {
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>📶 📡 🔋</span>
+        </div>
+        
+        <div class="nav-bar">
+            <div class="nav-title">AI助手</div>
+        </div>
+        
+        <div class="content">
+            <!-- 快捷操作 -->
+            <div class="quick-actions">
+                <div class="quick-action" onclick="quickAction('今天安排')">
+                    <div class="quick-action-icon">📅</div>
+                    <div class="quick-action-text">今天安排</div>
+                </div>
+                <div class="quick-action" onclick="quickAction('本周统计')">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-text">本周统计</div>
+                </div>
+                <div class="quick-action" onclick="quickAction('创建目标')">
+                    <div class="quick-action-icon">🎯</div>
+                    <div class="quick-action-text">创建目标</div>
+                </div>
+                <div class="quick-action" onclick="quickAction('添加任务')">
+                    <div class="quick-action-icon">✅</div>
+                    <div class="quick-action-text">添加任务</div>
+                </div>
+            </div>
+            
+            <!-- 聊天区域 -->
+            <div class="chat-area">
+                <!-- AI消息 -->
+                <div class="message ai">
+                    <div class="avatar ai">🤖</div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            您好！我是您的AI智能助手,可以帮您:
+                            <ul style="margin-left: 20px; margin-top: 8px;">
+                                <li>查看今日日程和任务安排</li>
+                                <li>分析工作统计和趋势</li>
+                                <li>创建和管理目标与任务</li>
+                                <li>提供智能建议和优化方案</li>
+                            </ul>
+                        </div>
+                        <div class="message-time">09:00</div>
+                    </div>
+                </div>
+                
+                <!-- 用户消息 -->
+                <div class="message user">
+                    <div class="avatar user">👤</div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            帮我看看今天的安排
+                        </div>
+                        <div class="message-time">09:05</div>
+                    </div>
+                </div>
+                
+                <!-- AI回复 - 卡片式 -->
+                <div class="message ai">
+                    <div class="avatar ai">🤖</div>
+                    <div class="message-content">
+                        <div class="card-response">
+                            <div class="card-header">
+                                <div class="card-title">📅 今日安排 (3月6日)</div>
+                                <div class="card-actions">
+                                    <button class="card-action-btn" onclick="addTask()">添加任务</button>
+                                </div>
+                            </div>
+                            <div class="timeline-card">
+                                <div class="timeline-item">
+                                    <div class="timeline-time">09:00</div>
+                                    <div class="timeline-task">查看今日日程</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">10:00</div>
+                                    <div class="timeline-task">团队周会</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">14:00</div>
+                                    <div class="timeline-task">完成项目文档编写</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">16:00</div>
+                                    <div class="timeline-task">代码评审</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">18:00</div>
+                                    <div class="timeline-task">健身锻炼</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="message-time">09:06</div>
+                    </div>
+                </div>
+                
+                <!-- 用户消息 -->
+                <div class="message user">
+                    <div class="avatar user">👤</div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            帮我统计一下本周的数据
+                        </div>
+                        <div class="message-time">09:10</div>
+                    </div>
+                </div>
+                
+                <!-- AI回复 - 统计卡片 -->
+                <div class="message ai">
+                    <div class="avatar ai">🤖</div>
+                    <div class="message-content">
+                        <div class="card-response">
+                            <div class="card-header">
+                                <div class="card-title">📊 本周统计 (2月28日 - 3月6日)</div>
+                                <div class="card-actions">
+                                    <button class="card-action-btn" onclick="viewDetails()">查看详情</button>
+                                </div>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value">42h</div>
+                                    <div class="stat-label">总时长</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">18</div>
+                                    <div class="stat-label">完成任务</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">85%</div>
+                                    <div class="stat-label">完成率</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 13px; color: #555; line-height: 1.5;">
+                                💡 <strong>AI分析:</strong> 本周工作效率表现良好,工作日平均每天完成14个任务。建议周五安排重要任务,效率最高。
+                            </p>
+                        </div>
+                        <div class="message-time">09:11</div>
+                    </div>
+                </div>
+                
+                <!-- 用户消息 -->
+                <div class="message user">
+                    <div class="avatar user">👤</div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            帮我把"完成项目文档"拆分成子任务
+                        </div>
+                        <div class="message-time">09:15</div>
+                    </div>
+                </div>
+                
+                <!-- AI回复 - 子任务拆分 -->
+                <div class="message ai">
+                    <div class="avatar ai">🤖</div>
+                    <div class="message-content">
+                        <div class="card-response">
+                            <div class="card-header">
+                                <div class="card-title">📋 子任务拆分: 完成项目文档编写</div>
+                                <div class="card-actions">
+                                    <button class="card-action-btn" onclick="confirmSubtasks()">确认</button>
+                                    <button class="card-action-btn" style="background: #e0e0e0;" onclick="editSubtasks()">编辑</button>
+                                </div>
+                            </div>
+                            <div class="subtask-list-card">
+                                <div class="subtask-item">
+                                    <div class="subtask-checkbox" onclick="toggleSubtask(this)"></div>
+                                    <div class="subtask-title">编写需求文档</div>
+                                </div>
+                                <div class="subtask-item">
+                                    <div class="subtask-checkbox" onclick="toggleSubtask(this)"></div>
+                                    <div class="subtask-title">编写技术设计文档</div>
+                                </div>
+                                <div class="subtask-item">
+                                    <div class="subtask-checkbox" onclick="toggleSubtask(this)"></div>
+                                    <div class="subtask-title">编写API接口文档</div>
+                                </div>
+                                <div class="subtask-item">
+                                    <div class="subtask-checkbox" onclick="toggleSubtask(this)"></div>
+                                    <div class="subtask-title">编写测试用例文档</div>
+                                </div>
+                                <div class="subtask-item">
+                                    <div class="subtask-checkbox" onclick="toggleSubtask(this)"></div>
+                                    <div class="subtask-title">编写部署文档</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="message-time">09:16</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <div class="suggestion-chips">
+                <div class="suggestion-chip" onclick="quickAction('今日任务')">今日任务</div>
+                <div class="suggestion-chip" onclick="quickAction('创建目标')">创建目标</div>
+                <div class="suggestion-chip" onclick="quickAction('统计分析')">统计分析</div>
+                <div class="suggestion-chip" onclick="quickAction('优化建议')">优化建议</div>
+            </div>
+            <div class="input-wrapper">
+                <button class="input-btn" onclick="attachFile()">📎</button>
+                <input type="text" class="input-field" id="messageInput" placeholder="输入消息...">
+                <button class="input-btn" onclick="voiceInput()">🎤</button>
+                <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <div class="nav-item" onclick="navigateTo('goals-view.html')">
+                <i>🎯</i>
+                <span>目标</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('tasks-view.html')">
+                <i>📋</i>
+                <span>任务</span>
+            </div>
+            <div class="nav-item ai-center active">
+                <i>🤖</i>
+                <span>AI助手</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('timeline-view.html')">
+                <i>📅</i>
+                <span>日程</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('statistics-enhanced.html')">
+                <i>📊</i>
+                <span>统计</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function quickAction(action) {
+            const input = document.getElementById('messageInput');
+            input.value = action;
+            input.focus();
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (message) {
+                // 模拟发送消息
+                alert('发送: ' + message);
+                input.value = '';
+            }
+        }
+        
+        function addTask() {
+            window.location.href = 'tasks-view.html';
+        }
+        
+        function viewDetails() {
+            // 已在统计页面
+            alert('查看统计详情');
+        }
+        
+        function confirmSubtasks() {
+            alert('子任务已确认创建');
+            window.location.href = 'task-detail.html';
+        }
+        
+        function editSubtasks() {
+            alert('打开编辑子任务弹窗');
+        }
+        
+        function toggleSubtask(checkbox) {
+            checkbox.classList.toggle('checked');
+            const title = checkbox.nextElementSibling;
+            title.classList.toggle('completed');
+        }
+        
+        function attachFile() {
+            alert('打开文件选择器');
+        }
+        
+        function voiceInput() {
+            alert('开始语音输入');
+        }
+        
+        // 回车发送消息
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+    </script>
+</body>
+</html>

@@ -107,6 +107,9 @@
         <text>时间线</text>
       </button>
     </view>
+
+    <!-- 自定义底部导航 -->
+    <CustomTabbar />
   </view>
 </template>
 
@@ -115,10 +118,12 @@ import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import Calendar from '@/components/Calendar.vue'
 import { useTasksStore } from '@/store/tasks.js'
+import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 
 export default {
   components: {
-    Calendar
+    Calendar,
+    CustomTabbar
   },
 
   setup() {

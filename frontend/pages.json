@@ -98,6 +98,19 @@
 			"style": {
 				"navigationBarTitleText": "简易E2E测试"
 			}
+		},
+		{
+			"path": "pages/statistics/statistics",
+			"style": {
+				"navigationBarTitleText": "统计分析"
+			}
+		},
+		{
+			"path": "pages/admin/conversations",
+			"style": {
+				"navigationBarTitleText": "对话管理",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {
@@ -106,31 +119,5 @@
 		"navigationBarBackgroundColor": "#007AFF",
 		"backgroundColor": "#F8F8F8"
 	},
-	"uniIdRouter": {},
-	"tabBar": {
-		"color": "#999999",
-		"selectedColor": "#6366f1",
-		"backgroundColor": "#FFFFFF",
-		"borderStyle": "black",
-		"list": [
-			{
-				"pagePath": "pages/goals/goals",
-				"text": "目标",
-				"iconPath": "static/tabbar/goals.png",
-				"selectedIconPath": "static/tabbar/goals-active.png"
-			},
-			{
-				"pagePath": "pages/tasks/tasks",
-				"text": "任务",
-				"iconPath": "static/tabbar/tasks.png",
-				"selectedIconPath": "static/tabbar/tasks-active.png"
-			},
-			{
-				"pagePath": "pages/timeline/calendar-view",
-				"text": "日程",
-				"iconPath": "static/tabbar/goals.png",
-				"selectedIconPath": "static/tabbar/goals-active.png"
-			}
-		]
-	}
+	"uniIdRouter": {}
 }

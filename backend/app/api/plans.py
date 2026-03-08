@@ -121,9 +121,9 @@ async def confirm_plan(
             return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY] in str(e):
             return error_response(code=ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY, message=str(e)).model_dump()
-        return error_response(message=str(e)).model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"确认规划失败: {str(e)}").model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=f"确认规划失败: {str(e)}").model_dump()
 
 
 @router.put("/{plan_id}")
@@ -159,6 +159,6 @@ async def update_plan(
             return error_response(code=ErrorCode.GOAL_NOT_BELONG_TO_USER, message=str(e)).model_dump()
         if ERROR_MESSAGES[ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY] in str(e):
             return error_response(code=ErrorCode.PLAN_CONFIRMED_CANNOT_MODIFY, message=str(e)).model_dump()
-        return error_response(message=str(e)).model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=str(e)).model_dump()
     except Exception as e:
-        return error_response(message=f"修改规划失败: {str(e)}").model_dump()
+        return error_response(code=ErrorCode.COMMON_ERROR, message=f"修改规划失败: {str(e)}").model_dump()

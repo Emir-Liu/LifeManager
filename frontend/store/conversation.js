@@ -23,9 +23,10 @@ export const useConversationStore = defineStore('conversation', () => {
   const fetchConversations = async (params = {}) => {
     loading.value = true
     try {
-      const res = await conversationApi.getConversations(params)
-      conversations.value = res.data?.items || []
-      return res
+      const data = await conversationApi.getConversations(params)
+      // request.js 直接返回 data.data，所以 data 就是对话列表数据
+      conversations.value = data?.items || []
+      return data
     } catch (error) {
       console.error('获取对话列表失败:', error)
       throw error
@@ -63,9 +64,12 @@ export const useConversationStore = defineStore('conversation', () => {
   const fetchMessages = async (conversationId, params = {}) => {
     loading.value = true
     try {
-      const res = await conversationApi.getMessages(conversationId, params)
-      messages.value = res.data?.items || []
-      return res
+      // request.js 直接返回 data.data，所以 res 就是消息数据
+      const data = await conversationApi.getMessages(conversationId, params)
+      // 后端返回的消息按 sequence 降序排列，需要反转
+      const items = data?.items || []
+      messages.value = items.reverse()
+      return data
     } catch (error) {
       console.error('获取消息列表失败:', error)
       throw error
@@ -118,7 +122,7 @@ export const useConversationStore = defineStore('conversation', () => {
     }
   }
 
-  // 发送消息(流式)
+  // 发送消息(流式) - 使用AI接口
   const chatWithAI = async (conversationId, content, onChunk) => {
     if (!conversationId || isSending.value) {
       throw new Error('对话ID无效或正在发送中')
@@ -127,45 +131,112 @@ export const useConversationStore = defineStore('conversation', () => {
     isSending.value = true
     isTyping.value = true
 
-    // 添加用户消息到列表
-    const userMessage = {
-      id: Date.now(),
-      conversation_id: conversationId,
-      role: 'user',
-      message_type: 'text',
-      content,
-      created_at: new Date().toISOString()
-    }
-    messages.value.push(userMessage)
-
-    // 创建AI消息占位符
-    const aiMessage = {
-      id: Date.now() + 1,
-      conversation_id: conversationId,
-      role: 'assistant',
-      message_type: 'text',
-      content: '',
-      created_at: new Date().toISOString()
-    }
-    messages.value.push(aiMessage)
-
     try {
+      // 调用AI聊天接口
       const res = await conversationApi.chatWithAI(conversationId, {
-        message: content
+        content: content
       })
 
-      // 如果返回完整的AI消息,更新占位符
-      if (res.data?.ai_message) {
-        Object.assign(aiMessage, res.data.ai_message)
+      // 添加用户消息到列表
+      if (res.user_message) {
+        messages.value.push(res.user_message)
+      }
+
+      // 添加AI回复到列表
+      if (res.ai_message) {
+        messages.value.push(res.ai_message)
       }
 
       return res
     } catch (error) {
       console.error('AI对话失败:', error)
-      // 移除失败的消息
-      messages.value = messages.value.filter(m =>
-        m.id !== userMessage.id && m.id !== aiMessage.id
-      )
+      // 如果失败，移除可能已添加的用户消息
+      if (res && res.user_message) {
+        messages.value = messages.value.filter(m => m.id !== res.user_message.id)
+      }
+      throw error
+    } finally {
+      isSending.value = false
+      isTyping.value = false
+    }
+  }
+
+  // 流式 AI 对话
+  const chatWithAIStream = async (conversationId, content) => {
+    console.log('开始流式对话:', conversationId, content)
+
+    if (!conversationId || isSending.value) {
+      throw new Error('对话ID无效或正在发送中')
+    }
+
+    isSending.value = true
+    isTyping.value = true
+
+    // 记录临时消息的创建时间（前端本地时间）
+    const localCreatedAt = new Date().toISOString()
+
+    // 创建临时 AI 消息用于流式显示
+    const tempMessageId = `temp-${Date.now()}`
+    const tempAiMessage = ref({
+      id: tempMessageId,
+      conversation_id: conversationId,
+      role: 'assistant',
+      message_type: 'text',
+      content: '',
+      created_at: localCreatedAt,
+      streaming: true,
+      useMarkdown: true  // 流式过程中也使用 Markdown 解析
+    })
+    messages.value.push(tempAiMessage.value)
+    console.log('临时消息已创建:', tempAiMessage.value)
+
+    try {
+      await conversationApi.chatWithAIStream(conversationId, {
+        content: content
+      }, (event, data) => {
+        console.log('收到事件:', event, data)
+        // 处理流式响应
+        if (event === 'ai_chunk') {
+          // 追加内容
+          tempAiMessage.value.content += data.content
+          console.log('AI 内容更新:', tempAiMessage.value.content)
+          // 更新数组中的引用
+          const index = messages.value.findIndex(m => m.id === tempMessageId)
+          if (index !== -1) {
+            messages.value[index] = tempAiMessage.value
+          }
+        } else if (event === 'ai_complete') {
+          // 替换为完整消息，但保留前端本地创建时间
+          console.log('AI 回复完成:', data)
+          const index = messages.value.findIndex(m => m.id === tempMessageId)
+          if (index !== -1) {
+            data.useMarkdown = true
+            data.streaming = false  // 完成后移除流式标记
+            data.created_at = localCreatedAt  // 保留前端本地时间，避免时区问题
+            messages.value[index] = data
+          }
+        } else if (event === 'user_message') {
+          // 同步用户消息
+          console.log('用户消息同步:', data)
+          const index = messages.value.findIndex(m => m.pending)
+          if (index !== -1) {
+            // 保留前端的本地创建时间
+            const originalTime = messages.value[index].created_at
+            messages.value[index] = data
+            messages.value[index].created_at = originalTime
+          }
+        } else if (event === 'error') {
+          console.error('流式错误:', data)
+          throw new Error(data.message)
+        }
+      })
+
+      console.log('流式对话完成')
+      return tempAiMessage.value
+    } catch (error) {
+      console.error('AI对话失败:', error)
+      // 移除临时消息
+      messages.value = messages.value.filter(m => m.id !== tempMessageId)
       throw error
     } finally {
       isSending.value = false
@@ -283,6 +354,7 @@ export const useConversationStore = defineStore('conversation', () => {
     fetchMessages,
     sendMessage,
     chatWithAI,
+    chatWithAIStream,
     feedbackMessage,
     fetchActions,
     executeAction,

@@ -74,13 +74,7 @@
       </view>
     </view>
 
-    <!-- AI 智能规划按钮 -->
-    <view class="ai-planning-btn" @tap="startNewPlanning">
-      <text class="btn-icon">🤖</text>
-      <text>AI 智能规划</text>
-    </view>
-
-    <!-- 空状态 -->
+    <!-- 创建按钮 -->
     <view v-if="filteredGoals.length === 0" class="empty-state">
       <text class="empty-text">暂无目标</text>
       <text class="empty-hint">点击下方按钮创建第一个目标</text>
@@ -90,13 +84,20 @@
     <view class="create-btn" @tap="handleCreate">
       <text class="create-icon">+</text>
     </view>
+
+    <!-- 自定义底部导航 -->
+    <CustomTabbar />
   </view>
 </template>
 
 <script>
 import goalApi from '@/api/goal.js'
+import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 
 export default {
+  components: {
+    CustomTabbar
+  },
   data() {
     return {
       stats: {
@@ -164,13 +165,6 @@ export default {
     handleCreate() {
       uni.navigateTo({
         url: '/pages/goals/create'
-      })
-    },
-
-    // 开始新的规划(对话)
-    startNewPlanning() {
-      uni.navigateTo({
-        url: '/pages/conversation/conversation?conversation_type=goal_planning'
       })
     },
 
@@ -253,6 +247,7 @@ export default {
 .goals-container {
   min-height: 100vh;
   background-color: #F5F5F5;
+  padding-bottom: 100rpx;
   padding-bottom: 120rpx;
 }
 
@@ -470,11 +465,30 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
+  z-index: 100;
 }
 
 .create-icon {
   font-size: 72rpx;
   color: #ffffff;
   font-weight: bold;
+}
+
+.conversation-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 16rpx;
+  padding: 16rpx 24rpx;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 24rpx;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 500;
+  box-shadow: 0 4rpx 12rpx rgba(16, 185, 129, 0.3);
+
+  .btn-icon {
+    font-size: 28rpx;
+  }
 }
 </style>

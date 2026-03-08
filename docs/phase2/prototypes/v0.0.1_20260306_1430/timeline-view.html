@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间线视图 - LifeManager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: PingFang SC, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 导航栏 */
+        .nav-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+        }
+
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .date-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .date-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .current-date {
+            font-size: 16px;
+            font-weight: 600;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .calendar-icon {
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* 时间线内容 */
+        .timeline-content {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* 当前时间线 */
+        .current-time-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #f59e0b;
+            z-index: 10;
+        }
+
+        .current-time-line::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -4px;
+            width: 10px;
+            height: 10px;
+            background: #f59e0b;
+            border-radius: 50%;
+        }
+
+        .current-time-label {
+            position: absolute;
+            right: 8px;
+            top: -20px;
+            background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* 时间行 */
+        .time-row {
+            display: flex;
+            padding: 0;
+            border-bottom: 1px solid #f3f4f6;
+            position: relative;
+            min-height: 60px;
+        }
+
+        .time-label {
+            width: 70px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #9ca3af;
+            text-align: right;
+            border-right: 1px solid #f3f4f6;
+            flex-shrink: 0;
+        }
+
+        .time-slot {
+            flex: 1;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .time-slot:hover {
+            background: #f9fafb;
+        }
+
+        /* 任务卡片 */
+        .task-card {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .task-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        }
+
+        .task-card.type-work {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .task-card.type-learning {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+        }
+
+        .task-card.type-health {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .task-card.type-meeting {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .task-card.type-personal {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            color: white;
+        }
+
+        .task-card.conflict {
+            border: 2px solid #ef4444;
+        }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .task-location {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        /* 底部操作栏 */
+        .bottom-bar {
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 底部导航栏 */
+        .bottom-nav {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 8px 16px 16px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: #9ca3af;
+        }
+
+        .nav-item:hover {
+            background: #f3f4f6;
+        }
+
+        .nav-item.active {
+            color: #6366f1;
+            background: #eef2ff;
+        }
+        
+        .nav-item.ai-center {
+            position: relative;
+        }
+        
+        .nav-item.ai-center .nav-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-item.ai-center .nav-label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* 冲突标记 */
+        .conflict-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background: #ef4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* 空时间段提示 */
+        .empty-slot-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            color: #d1d5db;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <!-- 导航栏 -->
+        <div class="nav-bar">
+            <div class="date-selector">
+                <button class="date-btn">◀</button>
+                <div class="current-date">3月5日 周三</div>
+                <button class="date-btn">▶</button>
+            </div>
+            <div class="calendar-icon">📅</div>
+        </div>
+
+        <!-- 时间线内容 -->
+        <div class="timeline-content">
+            <!-- 当前时间线 (假设现在是 13:30) -->
+            <div class="current-time-line" style="top: 540px;">
+                <div class="current-time-label">现在</div>
+            </div>
+
+            <!-- 06:00 -->
+            <div class="time-row">
+                <div class="time-label">06:00</div>
+                <div class="time-slot">
+                    <div class="empty-slot-hint">点击添加任务</div>
+                </div>
+            </div>
+
+            <!-- 07:00 -->
+            <div class="time-row">
+                <div class="time-label">07:00</div>
+                <div class="time-slot">
+                    <div class="task-card type-health" style="top: 0; height: 54px;">
+                        <div class="task-title">🏃 晨跑</div>
+                        <div class="task-location">📍 公园</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 08:00 -->
+            <div class="time-row">
+                <div class="time-label">08:00</div>
+                <div class="time-slot"></div>
+            </div>
+
+            <!-- 09:00 -->
+            <div class="time-row">
+                <div class="time-label">09:00</div>
+                <div class="time-slot">
+                    <div class="task-card type-work" style="top: 0; height: 108px;">
+                        <div class="task-title">💻 深度工作</div>
+                        <div class="task-location">📍 家</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10:00 -->
+            <div class="time-row">
+                <div class="time-label">10:00</div>
+                <div class="time-slot"></div>
+            </div>
+
+            <!-- 11:00 -->
+            <div class="time-row">
+                <div class="time-label">11:00</div>
+                <div class="time-slot"></div>
+            </div>
+
+            <!-- 12:00 -->
+            <div class="time-row">
+                <div class="time-label">12:00</div>
+                <div class="time-slot">
+                    <div class="task-card type-personal" style="top: 0; height: 54px;">
+                        <div class="task-title">🍽️ 午餐休息</div>
+                        <div class="task-location">📍 公司食堂</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 13:00 -->
+            <div class="time-row">
+                <div class="time-label">13:00</div>
+                <div class="time-slot"></div>
+            </div>
+
+            <!-- 14:00 -->
+            <div class="time-row">
+                <div class="time-label">14:00</div>
+                <div class="time-slot">
+                    <div class="task-card type-meeting conflict" style="top: 0; height: 108px;">
+                        <div class="conflict-badge">!</div>
+                        <div class="task-title">📊 项目会议</div>
+                        <div class="task-location">📍 会议室A</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 15:00 -->
+            <div class="time-row">
+                <div class="time-label">15:00</div>
+                <div class="time-slot"></div>
+            </div>
+
+            <!-- 16:00 -->
+            <div class="time-row">
+                <div class="time-label">16:00</div>
+                <div class="time-slot">
+                    <div class="task-card type-meeting" style="top: 0; height: 54px;">
+                        <div class="task-title">🤝 客户会议</div>
+                        <div class="task-location">📍 会议室B</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 17:00 -->
+            <div class="time-row">
+                <div class="time-label">17:00</div>
+                <div class="time-slot"></div>
+            </div>
+
+            <!-- 18:00 -->
+            <div class="time-row">
+                <div class="time-label">18:00</div>
+                <div class="time-slot"></div>
+            </div>
+
+            <!-- 19:00 -->
+            <div class="time-row">
+                <div class="time-label">19:00</div>
+                <div class="time-slot">
+                    <div class="task-card type-learning" style="top: 0; height: 108px;">
+                        <div class="task-title">💻 Python学习</div>
+                        <div class="task-location">📍 家</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 20:00 -->
+            <div class="time-row">
+                <div class="time-label">20:00</div>
+                <div class="time-slot"></div>
+            </div>
+
+            <!-- 21:00 -->
+            <div class="time-row">
+                <div class="time-label">21:00</div>
+                <div class="time-slot">
+                    <div class="task-card type-personal" style="top: 0; height: 54px;">
+                        <div class="task-title">📖 阅读</div>
+                        <div class="task-location">📍 书房</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 22:00 -->
+            <div class="time-row">
+                <div class="time-label">22:00</div>
+                <div class="time-slot"></div>
+            </div>
+        </div>
+
+        <!-- 底部导航栏 -->
+        <div class="bottom-nav">
+            <a href="goals-view.html" class="nav-item">
+                <div class="nav-icon">🎯</div>
+                <div class="nav-label">目标</div>
+            </a>
+            <a href="tasks-view.html" class="nav-item">
+                <div class="nav-icon">📋</div>
+                <div class="nav-label">任务</div>
+            </a>
+            <a href="ai-assistant-enhanced.html" class="nav-item ai-center">
+                <div class="nav-icon">🤖</div>
+                <div class="nav-label">AI助手</div>
+            </a>
+            <a href="timeline-view.html" class="nav-item active">
+                <div class="nav-icon">📅</div>
+                <div class="nav-label">日程</div>
+            </a>
+            <a href="statistics-enhanced.html" class="nav-item">
+                <div class="nav-icon">📊</div>
+                <div class="nav-label">统计</div>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 时间段点击效果
+        document.querySelectorAll('.time-slot').forEach(slot => {
+            slot.addEventListener('click', function() {
+                const card = this.querySelector('.task-card');
+                if (!card) {
+                    alert('点击了空闲时间段，可以添加新任务');
+                }
+            });
+        });
+
+        // 任务卡片点击效果
+        document.querySelectorAll('.task-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (this.classList.contains('conflict')) {
+                    alert('该任务有时间冲突！\n点击AI助手按钮寻求帮助');
+                } else {
+                    alert('任务详情\n' + this.querySelector('.task-title').textContent);
+                }
+            });
+        });
+
+        // 日期切换
+        document.querySelectorAll('.date-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                alert('切换日期');
+            });
+        });
+
+        // 底部按钮
+        document.querySelector('.add-task-btn').addEventListener('click', function() {
+            alert('打开添加任务表单');
+        });
+
+        document.querySelector('.ai-assistant-btn').addEventListener('click', function() {
+            alert('跳转到 AI 智能助手');
+        });
+    </script>
+</body>
+</html>
