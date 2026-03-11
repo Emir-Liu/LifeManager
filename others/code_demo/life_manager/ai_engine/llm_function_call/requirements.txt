@@ -1,0 +1,11 @@
+# LLM Function Call Requirements
+
+# LangChain
+langchain>=0.1.0
+langchain-openai>=0.0.5
+
+# OpenAI
+openai>=1.0.0
+
+# Calendar module (dependency)
+# pip install -r ../../calendar/requirements.txt

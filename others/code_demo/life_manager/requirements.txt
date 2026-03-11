@@ -1,0 +1,15 @@
+# LangChain and LangChain Core
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-openai>=0.0.5
+
+# Google Calendar API
+google-auth>=2.23.0
+google-auth-oauthlib>=1.0.0
+google-api-python-client>=2.100.0
+
+# Date and Time utilities
+python-dateutil>=2.8.2
+
+# Environment variables
+python-dotenv>=1.0.0

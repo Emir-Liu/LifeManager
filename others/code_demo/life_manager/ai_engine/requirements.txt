@@ -1,0 +1,11 @@
+# LLM Module Requirements
+
+# 环境变量管理
+python-dotenv>=1.0.0
+
+# LangChain
+langchain-core>=0.1.0
+langchain-openai>=0.0.5
+
+# OpenAI
+openai>=1.0.0

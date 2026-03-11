@@ -1,3 +1,5 @@
 __pycache__
 token.json
 *.googleusercontent.com.json
+
+.env
