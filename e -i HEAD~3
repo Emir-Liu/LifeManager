@@ -1,0 +1,34 @@
+[33m45bb76b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/google_calendar[m[33m)[m remove .env
+[33m859dedc[m langchain版本实现
+[33m78e50bf[m 后端稍微重构了一下
+[33mcdb0805[m[33m ([m[1;31morigin/develop[m[33m, [m[1;32mdevelop[m[33m)[m 增加google calendar的接入
+[33mf7840f8[m 增加google日历的支持
+[33m39b7c23[m 项目结构更新20260309
+[33m741e81e[m 20260308提交之前的更新
+[33m067c94b[m update codebuddy
+[33m79701e4[m 20260305更新
+[33m3c0d14d[m 修复: 完成Vuex到Pinia的完整迁移
+[33m9dc1c21[m 修复: HBuilderX Chrome空白页面问题
+[33m6595314[m Phase 2 交付: 完成具体时间段任务安排功能
+[33mcef5eaa[m 提取公共模块
+[33m1193972[m 将skill提交到公共部分
+[33mc44d7a2[m 前后端开发，测试
+[33mbddfcc4[m feat(backend): Add Phase 2 data models and conversation layer
+[33m79cdb81[m 第二版本开发
+[33ma7acb21[m docs: add Phase 2 PRD for specific time slot task scheduling
+[33mb00c919[m[33m ([m[1;31morigin/release/v0.0.1_20260302[m[33m)[m fix: resolve infinite recursion bug in plan generation by using direct store dispatch
+[33m462a990[m fix: correct redirect path after login/register to use tabbar page
+[33m9f182e7[m 更新了.env.example文件
+[33md342376[m feat: enable auto push to remote repository in git commit rule
+[33m1baa9a9[m feat: add auto git commit rule for project
+[33m7dc69b7[m 未知版本
+[33m9f91ae4[m 增加管理
+[33md0c0dbe[m 前后端开始联调
+[33m922f1c2[m Merge branch 'develop' of github.com:Emir-Liu/LifeManager into develop
+[33m0c12ca1[m 后端测试通过，前端开发中
+[33mfbccea4[m skills自我提高
+[33m4b69a45[m 增加单元测试
+[33m99a4e8e[m 更新文档
+[33m7a25c97[m 第一阶段实现
+[33m177f6d4[m 前端uniapp部署
+[33m9c1b256[m first commit
