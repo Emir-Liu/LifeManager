@@ -2,20 +2,20 @@
 """
 LLM日历助手 - 交互式命令行工具
 支持通过自然语言管理Google Calendar日程
+使用 LangGraph 实现
 """
 
 import sys
 import os
 import calendar  # 先导入标准库calendar，避免命名冲突
+import json
 
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from calendar_engine.core.factory import CalendarProviderFactory
-from ai_engine.llm_function_call.agent.calendar_agent import create_calendar_agent
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_core.messages import HumanMessage
+from ai_engine.llm_function_call.graph.calendar_graph import create_calendar_graph
+from langchain_core.messages import HumanMessage, AIMessage
 
 
 def setup_providers():
@@ -46,45 +46,34 @@ def setup_providers():
 def main():
     """主函数"""
     print("=" * 60)
-    print("LLM日历助手")
+    print("LLM日历助手 (LangGraph 版本)")
     print("支持通过自然语言管理Google Calendar日程")
     print("=" * 60)
 
     # 设置日历提供者
     setup_providers()
 
-    # 创建日历Agent
+    # 创建日历 LangGraph
     print("\n正在初始化日历助手...")
-    agent = create_calendar_agent()
+    calendar_graph = create_calendar_graph()
     print("日历助手初始化完成!")
 
-    # 设置会话历史存储
-    store = {}
-
-    def get_session_history(session_id: str) -> ChatMessageHistory:
-        """获取或创建会话历史"""
-        if session_id not in store:
-            store[session_id] = ChatMessageHistory()
-        return store[session_id]
-
-    # 使用 RunnableWithMessageHistory 包装 agent 以保持上下文
-    agent_with_history = RunnableWithMessageHistory(
-        agent,
-        get_session_history,
-        input_messages_key="messages",
-    )
-
-    # 当前会话 ID
-    current_session_id = "default_session"
-
-    # 交互式对话
+    # 使用说明
     print("\n使用说明:")
     print("- 输入自然语言描述,如: '帮我查询今天有什么安排'")
-    print("- 输入 'new' 开启新的会话")
+    print("- 输入 'stream' 开启流式输出模式")
+    print("- 输入 'graph' 查看图结构")
+    print("- 输入 'export' 导出图结构为PNG")
     print("- 输入 'quit' 或 'exit' 退出程序")
     print("- 输入 'help' 查看帮助信息")
     print()
-    
+
+    # 流式输出模式标志
+    stream_mode = False
+
+    # 当前会话 ID
+    current_thread_id = "default_thread"
+
     while True:
         try:
             user_input = input("你: ").strip()
@@ -100,41 +89,72 @@ def main():
                 print_help()
                 continue
 
-            if user_input.lower() in ['new', 'new session', '新会话']:
-                # 生成新的会话 ID
-                import uuid
-                current_session_id = f"session_{uuid.uuid4().hex[:8]}"
-                print(f"\n已开启新会话 (ID: {current_session_id})\n")
+            if user_input.lower() in ['stream', '流式']:
+                stream_mode = not stream_mode
+                mode_str = "开启" if stream_mode else "关闭"
+                print(f"\n流式输出模式已{mode_str}\n")
                 continue
 
-            # 调用Agent - 使用 RunnableWithMessageHistory 保持上下文
+            if user_input.lower() in ['graph', '图结构']:
+                print("\n" + calendar_graph.get_graph_ascii() + "\n")
+                continue
+
+            if user_input.lower() in ['export', '导出']:
+                output_path = os.path.join(
+                    os.path.dirname(__file__),
+                    "calendar_graph.png"
+                )
+                calendar_graph.get_graph_png(output_path)
+                continue
+
+            # 调用日历助手
             print("\n助手: ", end="", flush=True)
 
-            try:
-                result = agent_with_history.invoke(
-                    {"messages": [HumanMessage(content=user_input)]},
-                    config={"configurable": {"session_id": current_session_id}}
-                )
-
-                # 提取响应
-                if hasattr(result, 'messages') and result.messages:
-                    # 返回的是消息列表，取最后一个消息
-                    last_message = result.messages[-1]
-                    print(getattr(last_message, 'content', str(last_message)))
-                elif isinstance(result, dict) and 'output' in result:
-                    print(result['output'])
-                else:
-                    print(result)
-            except Exception as e:
-                # 如果新版格式失败，尝试旧版格式
+            if stream_mode:
+                # 流式输出模式
                 try:
-                    result = agent.invoke({"input": user_input})
-                    if 'output' in result:
-                        print(result['output'])
+                    for event in calendar_graph.stream(user_input, stream_mode="messages", thread_id=current_thread_id):
+                        for message in event:
+                            if isinstance(message, AIMessage):
+                                # 检查是否有工具调用
+                                if hasattr(message, 'tool_calls') and message.tool_calls:
+                                    # 显示工具调用信息
+                                    for tool_call in message.tool_calls:
+                                        print(f"\n调用工具：{tool_call['name']}")
+                                        if tool_call['args']:
+                                            # 格式化显示参数
+                                            args_str = json.dumps(tool_call['args'], ensure_ascii=False, indent=2)
+                                            print(f"参数：{args_str}")
+                                # 流式打印内容
+                                content = message.content
+                                if content:
+                                    print(content, end="", flush=True)
+                except Exception as e:
+                    print(f"\n错误: {e}")
+                print()
+            else:
+                # 普通模式
+                try:
+                    result = calendar_graph.invoke(user_input, thread_id=current_thread_id)
+                    messages = result.get("messages", [])
+                    if messages:
+                        last_message = messages[-1]
+                        if isinstance(last_message, AIMessage):
+                            # 检查是否有工具调用
+                            if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                                # 显示工具调用信息
+                                for tool_call in last_message.tool_calls:
+                                    print(f"调用工具：{tool_call['name']}")
+                                    if tool_call['args']:
+                                        args_str = json.dumps(tool_call['args'], ensure_ascii=False, indent=2)
+                                        print(f"参数：{args_str}")
+                            print(last_message.content)
+                        else:
+                            print(last_message)
                     else:
                         print(result)
-                except Exception as e2:
-                    print(f"错误: {e2}")
+                except Exception as e:
+                    print(f"错误: {e}")
             print()
             
         except KeyboardInterrupt:

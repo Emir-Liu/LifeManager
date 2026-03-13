@@ -406,3 +406,272 @@ class EventsService:
         except HttpError as error:
             error_info = self.client._handle_error(error)
             raise Exception(f"获取重复事件实例失败: {error_info}")
+
+    def clear(self, calendar_id: str = PRIMARY_CALENDAR_ID) -> bool:
+        """
+        清空日历（删除所有事件）
+
+        Args:
+            calendar_id: 日历ID，默认为主日历
+
+        Returns:
+            bool: 清空成功返回True
+
+        Raises:
+            HttpError: API调用失败
+            Exception: 清空失败
+        """
+        # 获取所有事件
+        events = self.list(calendar_id=calendar_id, max_results=2500)
+
+        # 逐个删除事件
+        for event in events:
+            event_id = event.get('id')
+            if event_id:
+                try:
+                    self.delete(event_id=event_id, calendar_id=calendar_id)
+                except HttpError:
+                    # 忽略删除失败的情况（可能是重复事件实例）
+                    pass
+
+        return True
+
+    def list_recurring(self, calendar_id: str = PRIMARY_CALENDAR_ID,
+                      time_min: Optional[datetime] = None,
+                      time_max: Optional[datetime] = None,
+                      max_results: int = MAX_RESULTS) -> List[Dict[str, Any]]:
+        """
+        查询重复事件列表
+
+        Args:
+            calendar_id: 日历ID
+            time_min: 查询开始时间
+            time_max: 查询结束时间
+            max_results: 最大结果数
+
+        Returns:
+            List[Dict]: 重复事件列表
+        """
+        params = {
+            'calendarId': calendar_id,
+            'maxResults': max_results,
+            'singleEvents': False  # 不展开重复事件
+            # 注意：singleEvents=False时不支持orderBy=startTime，只能用updated
+        }
+
+        if time_min:
+            params['timeMin'] = self.client._format_datetime(time_min)
+        if time_max:
+            params['timeMax'] = self.client._format_datetime(time_max)
+
+        try:
+            response = self.service.list(**params).execute()
+            events = response.get('items', [])
+            # 过滤出有重复规则的事件
+            recurring_events = [event for event in events if 'recurrence' in event]
+            return recurring_events
+        except HttpError as error:
+            error_info = self.client._handle_error(error)
+            raise Exception(f"查询重复事件失败: {error_info}")
+
+    def insert_recurring(self, summary: str, start: datetime, end: datetime,
+                         recurrence: str,
+                         calendar_id: str = PRIMARY_CALENDAR_ID,
+                         description: Optional[str] = None,
+                         location: Optional[str] = None,
+                         attendees: Optional[List[Dict[str, str]]] = None,
+                         reminders: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        创建重复事件
+
+        Args:
+            summary: 事件标题
+            start: 开始时间
+            end: 结束时间
+            recurrence: 重复规则 (RRULE格式，如 "FREQ=WEEKLY;COUNT=10")
+            calendar_id: 日历ID
+            description: 事件描述
+            location: 地理位置信息
+            attendees: 参与者列表
+            reminders: 提醒设置
+
+        Returns:
+            Dict: 创建的重复事件
+        """
+        recurrence_list = [f'RRULE:{recurrence}']
+        return self.insert(
+            summary=summary,
+            start=start,
+            end=end,
+            calendar_id=calendar_id,
+            description=description,
+            location=location,
+            attendees=attendees,
+            recurrence=recurrence_list,
+            reminders=reminders
+        )
+
+    def update_recurring(self, event_id: str, calendar_id: str = PRIMARY_CALENDAR_ID,
+                         summary: Optional[str] = None,
+                         start: Optional[datetime] = None,
+                         end: Optional[datetime] = None,
+                         update_scope: str = "future",
+                         **kwargs) -> Dict[str, Any]:
+        """
+        更新重复事件
+
+        Args:
+            event_id: 事件ID
+            calendar_id: 日历ID
+            summary: 新的事件标题
+            start: 新的开始时间
+            end: 新的结束时间
+            update_scope: 更新范围
+                - "future": 更新此实例及所有未来实例
+                - "all": 更新所有实例
+                - "single": 只更新此实例
+            **kwargs: 其他要更新的字段
+
+        Returns:
+            Dict: 更新后的事件
+        """
+        # 先获取当前事件
+        try:
+            event = self.service.get(
+                calendarId=calendar_id,
+                eventId=event_id
+            ).execute()
+        except HttpError as error:
+            error_info = self.client._handle_error(error)
+            raise Exception(f"获取事件信息失败: {error_info}")
+
+        # 更新字段
+        if summary is not None:
+            event['summary'] = summary
+        if start is not None:
+            event['start'] = {'dateTime': self.client._format_datetime(start), 'timeZone': TIMEZONE}
+        if end is not None:
+            event['end'] = {'dateTime': self.client._format_datetime(end), 'timeZone': TIMEZONE}
+
+        # 更新其他字段
+        for key, value in kwargs.items():
+            event[key] = value
+
+        # 设置更新范围
+        params = {
+            'calendarId': calendar_id,
+            'eventId': event_id,
+            'body': event
+        }
+
+        if update_scope == "single":
+            # 只更新此实例，不设置recurringEventId
+            pass
+        elif update_scope == "future":
+            # 更新此实例及所有未来实例
+            if 'recurringEventId' in event:
+                params['eventId'] = event['recurringEventId']
+        elif update_scope == "all":
+            # 更新所有实例，使用原始事件ID
+            if 'recurringEventId' in event:
+                params['eventId'] = event['recurringEventId']
+
+        try:
+            if update_scope == "single":
+                # 使用patch更新单个实例
+                response = self.service.patch(
+                    calendarId=calendar_id,
+                    eventId=event_id,
+                    body=event
+                ).execute()
+            else:
+                # 使用update更新整个重复事件系列
+                response = self.service.update(**params).execute()
+            return response
+        except HttpError as error:
+            error_info = self.client._handle_error(error)
+            raise Exception(f"更新重复事件失败: {error_info}")
+
+    def delete_recurring(self, event_id: str, calendar_id: str = PRIMARY_CALENDAR_ID,
+                         delete_scope: str = "future") -> bool:
+        """
+        删除重复事件
+
+        Args:
+            event_id: 事件ID
+            calendar_id: 日历ID
+            delete_scope: 删除范围
+                - "future": 删除此实例及所有未来实例
+                - "all": 删除所有实例
+                - "single": 只删除此实例
+
+        Returns:
+            bool: 删除成功返回True
+        """
+        params = {
+            'calendarId': calendar_id,
+            'eventId': event_id,
+            'sendUpdates': 'none'
+        }
+
+        # 先获取事件信息
+        try:
+            event = self.service.get(
+                calendarId=calendar_id,
+                eventId=event_id
+            ).execute()
+        except HttpError as error:
+            error_info = self.client._handle_error(error)
+            raise Exception(f"获取事件信息失败: {error_info}")
+
+        # 根据删除范围处理
+        if delete_scope == "single":
+            # 只删除此实例
+            params['eventId'] = event_id
+        elif delete_scope == "future":
+            # 删除此实例及所有未来实例
+            if 'recurringEventId' in event:
+                params['eventId'] = event['recurringEventId']
+                # 设置originalStart来指定从哪个实例开始删除
+                if 'originalStartTime' in event:
+                    params['originalStart'] = event['originalStartTime']['dateTime']
+        elif delete_scope == "all":
+            # 删除所有实例，使用原始事件ID
+            if 'recurringEventId' in event:
+                params['eventId'] = event['recurringEventId']
+            # 移除originalStart参数，表示删除整个系列
+            if 'originalStartTime' in params:
+                del params['originalStartTime']
+
+        try:
+            self.service.delete(**params).execute()
+            return True
+        except HttpError as error:
+            error_info = self.client._handle_error(error)
+            raise Exception(f"删除重复事件失败: {error_info}")
+
+    def get_instances(self, event_id: str, calendar_id: str = PRIMARY_CALENDAR_ID,
+                      max_results: int = 250) -> List[Dict[str, Any]]:
+        """
+        获取重复事件的所有实例
+
+        Args:
+            event_id: 重复事件ID
+            calendar_id: 日历ID
+            max_results: 最大结果数
+
+        Returns:
+            List[Dict]: 重复事件实例列表
+        """
+        params = {
+            'calendarId': calendar_id,
+            'eventId': event_id,
+            'maxResults': max_results
+        }
+
+        try:
+            response = self.service.instances(**params).execute()
+            return response.get('items', [])
+        except HttpError as error:
+            error_info = self.client._handle_error(error)
+            raise Exception(f"获取重复事件实例失败: {error_info}")
